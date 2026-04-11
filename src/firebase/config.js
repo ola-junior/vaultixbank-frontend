@@ -1,6 +1,14 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  FacebookAuthProvider, 
+  TwitterAuthProvider,
+  signInWithPopup,
+  signOut
+} from 'firebase/auth';
 
+// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAqMVvyuoBojhxy-O1kTXCOhsm421uuIqw",
   authDomain: "vaultix-8e140.firebaseapp.com",
@@ -10,20 +18,16 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Configure providers with custom parameters
+// Providers
 const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({
-  prompt: 'select_account'
-});
-
 const facebookProvider = new FacebookAuthProvider();
-facebookProvider.setCustomParameters({
-  display: 'popup'
-});
+const twitterProvider = new TwitterAuthProvider();
 
+// Sign in with Google
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -34,12 +38,35 @@ export const signInWithGoogle = async () => {
   }
 };
 
+// Sign in with Facebook
 export const signInWithFacebook = async () => {
   try {
     const result = await signInWithPopup(auth, facebookProvider);
     return { success: true, user: result.user };
   } catch (error) {
     console.error('Facebook sign-in error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Sign in with Twitter
+export const signInWithTwitter = async () => {
+  try {
+    const result = await signInWithPopup(auth, twitterProvider);
+    return { success: true, user: result.user };
+  } catch (error) {
+    console.error('Twitter sign-in error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Sign out
+export const signOutFromFirebase = async () => {
+  try {
+    await signOut(auth);
+    return { success: true };
+  } catch (error) {
+    console.error('Sign-out error:', error);
     return { success: false, error: error.message };
   }
 };
