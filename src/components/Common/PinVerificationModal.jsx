@@ -46,36 +46,21 @@ const PinVerificationModal = ({ isOpen, onClose, onVerify, title = 'Enter Transa
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Authentication required');
-        return;
-      }
-
-      const response = await fetch('http://localhost:5000/api/user/verify-pin', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ pin })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
+      // ✅ Use the api service - works in both local and production
+      const response = await api.post('/user/verify-pin', { pin });
+      
+      if (response.data.success) {
         onVerify(pin);
         onClose();
       }
     } catch (error) {
-      try {
-        const errorData = await error.json?.() || {};
-        setError(errorData?.message || 'Invalid PIN');
-      } catch {
-        setError('Invalid PIN');
+      console.error('Verify PIN error:', error);
+      const errorMessage = error.response?.data?.message || 'Invalid PIN';
+      setError(errorMessage);
+      
+      // Show needsSetup message if PIN not set
+      if (error.response?.data?.needsSetup) {
+        toast.error('Please set your transaction PIN first');
       }
     } finally {
       setLoading(false);
@@ -139,6 +124,10 @@ const PinVerificationModal = ({ isOpen, onClose, onVerify, title = 'Enter Transa
             'Verify'
           )}
         </button>
+        
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
+          Forgot PIN? You can reset it in Security Settings
+        </p>
       </div>
     </div>
   );

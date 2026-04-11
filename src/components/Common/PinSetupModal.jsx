@@ -4,7 +4,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const PinSetupModal = ({ isOpen, onClose, onSuccess }) => {
-  const [step, setStep] = useState(1); // 1: create, 2: confirm
+  const [step, setStep] = useState(1);
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,6 @@ const PinSetupModal = ({ isOpen, onClose, onSuccess }) => {
       setPin(newPin);
     }
     
-    // Move to next input
     if (value && index < 3) {
       const refs = isConfirm ? confirmInputRefs : inputRefs;
       refs[index + 1]?.current?.focus();
@@ -80,36 +79,19 @@ const PinSetupModal = ({ isOpen, onClose, onSuccess }) => {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Authentication required');
-        return;
+      // ✅ Use the api service - works in both local and production
+      const response = await api.post('/user/set-pin', { pin, confirmPin });
+      
+      if (response.data.success) {
+        toast.success('Transaction PIN set successfully!');
+        onSuccess();
+        onClose();
       }
-
-      const response = await fetch('http://localhost:5000/api/user/set-pin', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ pin, confirmPin })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      toast.success('Transaction PIN set successfully!');
-      onSuccess();
-      onClose();
     } catch (error) {
-      try {
-        const errorData = await error.json?.() || {};
-        setError(errorData?.message || 'Failed to set PIN');
-      } catch {
-        setError('Failed to set PIN');
-      }
+      console.error('Set PIN error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to set PIN';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -149,7 +131,6 @@ const PinSetupModal = ({ isOpen, onClose, onSuccess }) => {
           </p>
         </div>
 
-        {/* PIN Input */}
         <div className="flex justify-center gap-3 mb-6">
           {(step === 1 ? inputRefs : confirmInputRefs).map((ref, index) => (
             <input
