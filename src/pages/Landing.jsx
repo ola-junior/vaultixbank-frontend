@@ -40,7 +40,6 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import { motion, useInView } from 'framer-motion';
-import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 import toast from 'react-hot-toast';
 
 const Landing = () => {
