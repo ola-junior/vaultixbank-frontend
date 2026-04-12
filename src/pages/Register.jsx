@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { 
   FaUser, 
   FaEnvelope, 
@@ -21,7 +22,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const Register = () => {
-  const { register, resendVerification, loginWithGoogle, loginWithFacebook, loginWithTwitter } = useAuth();
+  const { loginWithGoogle, loginWithFacebook, loginWithTwitter, resendVerification } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -55,8 +56,6 @@ const Register = () => {
       newErrors.name = 'Full name is required';
     } else if (formData.name.length < 3) {
       newErrors.name = 'Name must be at least 3 characters';
-    } else if (formData.name.length > 50) {
-      newErrors.name = 'Name cannot exceed 50 characters';
     }
     
     if (!formData.email.trim()) {
@@ -98,22 +97,53 @@ const Register = () => {
     setLoading(true);
     
     try {
-      const result = await register({
+      // ✅ Call API directly instead of using context
+      const response = await api.post('/auth/register', {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         phoneNumber: formData.phoneNumber ? formData.phoneNumber.replace(/\s/g, '') : undefined,
       });
 
-      if (result.success) {
+      console.log('Registration response:', response.data);
+
+      // ✅ Check for success (status 201)
+      if (response.data.success === true) {
         setRegisteredEmail(formData.email);
-        setVerificationUrl(result.data?.verificationUrl || '');
+        setVerificationUrl(response.data.verificationUrl || '');
         setRegistrationComplete(true);
-        setFormData({ name: '', email: '', password: '', confirmPassword: '', phoneNumber: '' });
+        
+        // Clear form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          phoneNumber: '',
+        });
         setAgreeToTerms(false);
+        
+        toast.success(response.data.message || 'Registration successful! Please check your email.');
+      } else {
+        toast.error(response.data.message || 'Registration failed');
       }
     } catch (error) {
-      toast.error('An unexpected error occurred. Please try again.');
+      console.error('Registration error:', error);
+      
+      if (error.response?.status === 400) {
+        const message = error.response?.data?.message;
+        if (message?.includes('already exists')) {
+          toast.error('Email already registered. Please login instead.');
+        } else {
+          toast.error(message || 'Registration failed. Please check your information.');
+        }
+      } else if (error.response?.status === 500) {
+        toast.error('Server error. Please try again later.');
+      } else if (error.request) {
+        toast.error('Network error. Please check your connection.');
+      } else {
+        toast.error('An unexpected error occurred.');
+      }
     } finally {
       setLoading(false);
     }
@@ -190,9 +220,9 @@ const Register = () => {
               Please check your inbox and click the verification link to activate your account.
             </p>
 
-            {verificationUrl && process.env.NODE_ENV === 'development' && (
+            {verificationUrl && (
               <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-2 font-semibold">Development Mode - Verification URL:</p>
+                <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-2 font-semibold">Verification URL (click if email not received):</p>
                 <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 break-all hover:underline">
                   {verificationUrl}
                 </a>
@@ -352,10 +382,6 @@ const Register = () => {
                 {oauthLoading.twitter ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-sky-500 border-t-transparent" /> : <FaTwitter className="text-sky-500 text-xl" />}
               </button>
             </div>
-
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-6">
-              By signing up, you agree to receive occasional emails about new features and deals.
-            </p>
           </motion.div>
         </div>
       </div>
