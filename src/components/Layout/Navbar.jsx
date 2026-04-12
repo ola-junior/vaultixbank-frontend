@@ -14,7 +14,7 @@ import {
   FaChevronDown
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
+import { getProfileImageUrl, getUserInitials } from '../../utils/imageUrl';
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
