@@ -3,14 +3,14 @@ import axios from 'axios';
 // Use environment variable for API URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-console.log('🔗 API URL:', API_URL); // Always log in production for debugging
+console.log('🔗 API URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // ✅ 60 seconds for Render cold start
+  timeout: 120000, // 2 minutes timeout for slow connections/Render cold start
   withCredentials: true,
 });
 
@@ -21,13 +21,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    console.log(`📤 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-    
     return config;
   },
   (error) => {
-    console.error('❌ Request Error:', error);
+    console.error('❌ Request Error:', error.message);
     return Promise.reject(error);
   }
 );
@@ -35,24 +32,18 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log(`📥 ${response.status} ${response.config.url}`);
     return response;
   },
   (error) => {
-    // Log the actual error
-    console.error('❌ Response Error:', {
+    // Log error details
+    console.error('❌ API Error:', {
       status: error.response?.status,
-      statusText: error.response?.statusText,
       url: error.config?.url,
-      data: error.response?.data,
       message: error.message,
       code: error.code
     });
     
-    // ✅ FIX: Don't transform the error - pass it through!
-    // Let the component handle it
-    
-    // Handle 401 Unauthorized - Token expired
+    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       const publicPaths = ['/login', '/register', '/', '/verify-email'];
       const currentPath = window.location.pathname;
@@ -64,9 +55,57 @@ api.interceptors.response.use(
       }
     }
     
-    // ✅ Return the original error so component can access error.response
+    // Return the original error
     return Promise.reject(error);
   }
 );
+
+// Wake up function for Render cold starts
+export const wakeUpBackend = async () => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+    await fetch(`${API_URL.replace('/api', '')}/health`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    return true;
+  } catch (error) {
+    console.log('Wake up attempt:', error.message);
+    return false;
+  }
+};
+
+// Retry wrapper for slow endpoints
+export const retryRequest = async (requestFn, maxRetries = 3, delay = 2000) => {
+  let lastError;
+  
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      const response = await requestFn();
+      return { success: true, data: response.data, response };
+    } catch (error) {
+      lastError = error;
+      
+      // Don't retry on client errors (4xx) except 408/429
+      if (error.response?.status >= 400 && error.response?.status < 500) {
+        if (![408, 429].includes(error.response.status)) {
+          break;
+        }
+      }
+      
+      // Wait before retry
+      if (i < maxRetries) {
+        console.log(`Retry ${i + 1}/${maxRetries} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 1.5; // Exponential backoff
+      }
+    }
+  }
+  
+  return { success: false, error: lastError };
+};
 
 export default api;

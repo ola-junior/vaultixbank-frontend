@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api, { wakeUpBackend, retryRequest } from '../services/api';
 import { 
   FaUser, 
   FaEnvelope, 
@@ -57,8 +57,6 @@ const Register = () => {
       newErrors.name = 'Full name is required';
     } else if (formData.name.length < 3) {
       newErrors.name = 'Name must be at least 3 characters';
-    } else if (formData.name.length > 50) {
-      newErrors.name = 'Name cannot exceed 50 characters';
     }
     
     if (!formData.email.trim()) {
@@ -99,27 +97,30 @@ const Register = () => {
     
     setLoading(true);
     
+    // Show loading toast
+    const loadingToast = toast.loading('Creating your account...');
+    
     try {
-      console.log('Sending registration request...');
+      // Wake up backend first (Render cold start)
+      await wakeUpBackend();
       
-      const response = await api.post('/auth/register', {
-        name: formData.name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-        phoneNumber: formData.phoneNumber ? formData.phoneNumber.replace(/\s/g, '') : undefined,
-      });
-
-      console.log('Registration response:', response);
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
-
-      // Check for success using multiple methods
-      const isSuccess = 
-        response.data?.success === true || 
-        response.status === 201 || 
-        response.status === 200;
-
-      if (isSuccess) {
+      // Use retry wrapper for registration
+      const result = await retryRequest(
+        () => api.post('/auth/register', {
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          phoneNumber: formData.phoneNumber ? formData.phoneNumber.replace(/\s/g, '') : undefined,
+        }),
+        3, // max retries
+        2000 // initial delay
+      );
+      
+      toast.dismiss(loadingToast);
+      
+      if (result.success) {
+        const response = result.response;
+        
         setRegisteredEmail(formData.email);
         setVerificationUrl(response.data?.verificationUrl || '');
         setRegistrationComplete(true);
@@ -136,39 +137,30 @@ const Register = () => {
         
         toast.success(response.data?.message || 'Registration successful! Please check your email.');
       } else {
-        toast.error(response.data?.message || 'Registration failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      console.error('Error response:', error.response);
-      
-      // Handle specific error cases
-      if (error.response) {
-        const { status, data } = error.response;
+        const error = result.error;
         
-        if (status === 400) {
-          const message = data?.message || '';
-          if (message.includes('already exists')) {
+        if (error?.response?.status === 400) {
+          const message = error.response.data?.message;
+          if (message?.includes('already exists')) {
             toast.error('Email already registered. Please login instead.');
-            // Offer to navigate to login
             setTimeout(() => {
               if (window.confirm('Would you like to go to the login page?')) {
                 navigate('/login');
               }
             }, 1000);
           } else {
-            toast.error(message || 'Registration failed. Please check your information.');
+            toast.error(message || 'Registration failed.');
           }
-        } else if (status === 500) {
-          toast.error('Server error. Please try again later.');
+        } else if (error?.code === 'ECONNABORTED') {
+          toast.error('Server is taking too long. Please try again in a moment.');
         } else {
-          toast.error(data?.message || 'Registration failed.');
+          toast.error('Registration failed. Please try again.');
         }
-      } else if (error.request) {
-        toast.error('Network error. Please check your internet connection.');
-      } else {
-        toast.error('An unexpected error occurred. Please try again.');
       }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Unexpected error:', error);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -184,7 +176,6 @@ const Register = () => {
         toast.error('Failed to resend verification email.');
       }
     } catch (error) {
-      console.error('Resend error:', error);
       toast.error('Failed to resend verification email.');
     } finally {
       setResendingEmail(false);
@@ -202,7 +193,6 @@ const Register = () => {
         toast.error('Google sign-up failed. Please try again.');
       }
     } catch (error) {
-      console.error('Google sign-up error:', error);
       toast.error('Google sign-up failed. Please try again.');
     } finally {
       setOauthLoading(prev => ({ ...prev, google: false }));
@@ -220,7 +210,6 @@ const Register = () => {
         toast.error('Facebook sign-up failed. Please try again.');
       }
     } catch (error) {
-      console.error('Facebook sign-up error:', error);
       toast.error('Facebook sign-up failed. Please try again.');
     } finally {
       setOauthLoading(prev => ({ ...prev, facebook: false }));
@@ -238,7 +227,6 @@ const Register = () => {
         toast.error('Twitter sign-up failed. Please try again.');
       }
     } catch (error) {
-      console.error('Twitter sign-up error:', error);
       toast.error('Twitter sign-up failed. Please try again.');
     } finally {
       setOauthLoading(prev => ({ ...prev, twitter: false }));
@@ -274,13 +262,12 @@ const Register = () => {
             
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Please check your inbox and click the verification link to activate your account.
-              The link will expire in 24 hours.
             </p>
 
             {verificationUrl && (
               <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-2 font-semibold">
-                  Didn't receive the email? Click below:
+                  Click below if email not received:
                 </p>
                 <a 
                   href={verificationUrl}
@@ -299,14 +286,7 @@ const Register = () => {
                 disabled={resendingEmail}
                 className="w-full px-6 py-3 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all duration-200 disabled:opacity-50"
               >
-                {resendingEmail ? (
-                  <span className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent mr-2"></div>
-                    Sending...
-                  </span>
-                ) : (
-                  'Resend Verification Email'
-                )}
+                {resendingEmail ? 'Sending...' : 'Resend Verification Email'}
               </button>
               
               <Link 
@@ -316,10 +296,6 @@ const Register = () => {
                 Go to Login
               </Link>
             </div>
-
-            <p className="mt-6 text-xs text-gray-500 dark:text-gray-400">
-              Didn't receive the email? Check your spam folder or try resending.
-            </p>
           </motion.div>
         </div>
       </div>
@@ -384,11 +360,11 @@ const Register = () => {
             className="space-y-4 mb-8"
           >
             {[
-              { icon: FaShieldAlt, title: 'Bank-Grade Security', desc: '256-bit SSL encryption', color: 'from-indigo-500 to-indigo-600', border: 'indigo' },
-              { icon: FaBolt, title: 'Instant Transfers', desc: 'Send and receive in seconds', color: 'from-purple-500 to-purple-600', border: 'purple' },
-              { icon: FaGift, title: 'Member Rewards', desc: 'Earn cashback on transactions', color: 'from-pink-500 to-pink-600', border: 'pink' }
+              { icon: FaShieldAlt, title: 'Bank-Grade Security', desc: '256-bit SSL encryption', color: 'from-indigo-500 to-indigo-600' },
+              { icon: FaBolt, title: 'Instant Transfers', desc: 'Send and receive in seconds', color: 'from-purple-500 to-purple-600' },
+              { icon: FaGift, title: 'Member Rewards', desc: 'Earn cashback on transactions', color: 'from-pink-500 to-pink-600' }
             ].map((item, i) => (
-              <div key={i} className={`bg-white/10 backdrop-blur-lg rounded-xl p-4 flex items-center gap-4 border border-white/10 hover:border-${item.border}-400/30 transition-all duration-300 hover:translate-x-2`}>
+              <div key={i} className="bg-white/10 backdrop-blur-lg rounded-xl p-4 flex items-center gap-4 border border-white/10 hover:border-indigo-400/30 transition-all duration-300 hover:translate-x-2">
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white`}>
                   <item.icon className="text-lg" />
                 </div>
