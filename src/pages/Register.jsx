@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import api from '../services/api';
-import {
+import { 
   FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash, FaCheckCircle,
   FaShieldAlt, FaBolt, FaGift, FaGoogle, FaFacebook, FaTwitter, FaTimes
 } from 'react-icons/fa';
@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { loginWithGoogle, loginWithFacebook, loginWithTwitter, resendVerification } = useAuth();
+  const { loginWithGoogle, loginWithFacebook, loginWithTwitter } = useAuth();
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', confirmPassword: '', phoneNumber: ''
   });
@@ -52,43 +52,48 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) { toast.error('Please fix the errors in the form'); return; }
-
+    
     setLoading(true);
     const loadingToast = toast.loading('Creating your account...');
-
+    
     try {
       // 1. Create user in Firebase
       const userCredential = await createUserWithEmailAndPassword(
-        auth, formData.email.trim().toLowerCase(), formData.password
+        auth, 
+        formData.email.trim().toLowerCase(), 
+        formData.password
       );
-
+      
       // 2. Update profile with name
       await updateProfile(userCredential.user, { displayName: formData.name.trim() });
-
-      // 3. Send verification email (FIREBASE HANDLES THIS!)
-      await sendEmailVerification(userCredential.user);
-
+      
+      // 3. Send verification email with custom redirect
+      const actionCodeSettings = {
+        url: `${window.location.origin}/verify`,
+        handleCodeInApp: true
+      };
+      await sendEmailVerification(userCredential.user, actionCodeSettings);
+      
       // 4. Create user in backend database
       await api.post('/auth/register', {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         phoneNumber: formData.phoneNumber ? formData.phoneNumber.replace(/\s/g, '') : undefined,
-        firebaseUid: userCredential.user.uid,
-        isEmailVerified: false
+        firebaseUid: userCredential.user.uid
       });
-
+      
       toast.dismiss(loadingToast);
       setRegisteredEmail(formData.email);
       setRegistrationComplete(true);
       setFormData({ name: '', email: '', password: '', confirmPassword: '', phoneNumber: '' });
       setAgreeToTerms(false);
       toast.success('Registration successful! Please check your email to verify your account.');
-
+      
     } catch (error) {
       toast.dismiss(loadingToast);
       console.error('Registration error:', error);
-
+      
       if (error.code === 'auth/email-already-in-use') {
         toast.error('Email already registered. Please login instead.');
         setTimeout(() => { if (window.confirm('Go to login page?')) navigate('/login'); }, 1000);
@@ -104,24 +109,13 @@ const Register = () => {
     }
   };
 
-  const handleResendVerification = async () => {
-    try {
-      const result = await resendVerification(registeredEmail);
-      if (result?.success) toast.success('Verification email resent!');
-      else toast.error('Failed to resend verification email.');
-    } catch (error) {
-      toast.error('Failed to resend verification email.');
-    }
-  };
-
   const handleGoogleSignUp = async () => {
     setOauthLoading(prev => ({ ...prev, google: true }));
     try {
       const result = await loginWithGoogle();
       if (result?.success) { toast.success('Account created with Google!'); navigate('/dashboard'); }
       else toast.error('Google sign-up failed.');
-    } catch {
-      toast.error('Google sign-up failed.');
+    } catch { toast.error('Google sign-up failed.');
     } finally { setOauthLoading(prev => ({ ...prev, google: false })); }
   };
 
@@ -131,8 +125,7 @@ const Register = () => {
       const result = await loginWithFacebook();
       if (result?.success) { toast.success('Account created with Facebook!'); navigate('/dashboard'); }
       else toast.error('Facebook sign-up failed.');
-    } catch {
-      toast.error('Facebook sign-up failed.');
+    } catch { toast.error('Facebook sign-up failed.');
     } finally { setOauthLoading(prev => ({ ...prev, facebook: false })); }
   };
 
@@ -142,8 +135,7 @@ const Register = () => {
       const result = await loginWithTwitter();
       if (result?.success) { toast.success('Account created with Twitter!'); navigate('/dashboard'); }
       else toast.error('Twitter sign-up failed.');
-    } catch {
-      toast.error('Twitter sign-up failed.');
+    } catch { toast.error('Twitter sign-up failed.');
     } finally { setOauthLoading(prev => ({ ...prev, twitter: false })); }
   };
 
@@ -158,10 +150,7 @@ const Register = () => {
             <p className="text-gray-600 dark:text-gray-400 mb-4">We've sent a verification link to:</p>
             <p className="text-lg font-semibold text-indigo-600 dark:text-indigo-400 mb-6">{registeredEmail}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Please check your inbox and click the link to activate your account.</p>
-            <div className="space-y-3">
-              <button onClick={handleResendVerification} className="w-full px-6 py-3 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Resend Verification Email</button>
-              <Link to="/login" className="block w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-blue-700 shadow-lg">Go to Login</Link>
-            </div>
+            <Link to="/login" className="block w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-blue-700 shadow-lg">Go to Login</Link>
           </motion.div>
         </div>
       </div>

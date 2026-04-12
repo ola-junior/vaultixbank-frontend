@@ -13,6 +13,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [oauthLoading, setOauthLoading] = useState({ google: false, facebook: false, twitter: false });
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -30,8 +31,9 @@ const Login = () => {
       if (!userCredential.user.emailVerified) {
         toast.error('Please verify your email before logging in.');
         if (window.confirm('Resend verification email?')) {
-          await sendEmailVerification(userCredential.user);
-          toast.success('Verification email resent!');
+          const actionCodeSettings = { url: `${window.location.origin}/verify`, handleCodeInApp: true };
+          await sendEmailVerification(userCredential.user, actionCodeSettings);
+          toast.success('Verification email resent! Check your inbox.');
         }
         setLoading(false);
         return;
@@ -47,6 +49,8 @@ const Login = () => {
         toast.error('Invalid email or password');
       } else if (error.code === 'auth/too-many-requests') {
         toast.error('Too many attempts. Try again later.');
+      } else if (error.code === 'auth/invalid-credential') {
+        toast.error('Invalid email or password');
       } else {
         toast.error(error.message || 'Login failed');
       }
@@ -76,6 +80,11 @@ const Login = () => {
     finally { setOauthLoading(prev => ({ ...prev, twitter: false })); }
   };
 
+  const fillDemoCredentials = () => {
+    setFormData({ email: 'demo@vaultix.com', password: 'demo123' });
+    toast.success('Demo credentials filled!');
+  };
+
   return (
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900">
@@ -99,11 +108,18 @@ const Login = () => {
               <input type="email" name="email" required value={formData.email} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 dark:text-white" placeholder="Enter your email" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2"><FaLock className="inline mr-2 text-indigo-500" />Password</label>
+              <div className="flex justify-between mb-2">
+                <label className="text-sm font-medium"><FaLock className="inline mr-2 text-indigo-500" />Password</label>
+                <Link to="/forgot-password" className="text-xs text-indigo-600 hover:underline">Forgot?</Link>
+              </div>
               <div className="relative">
                 <input type={showPassword ? "text" : "password"} name="password" required value={formData.password} onChange={handleChange} className="w-full px-4 py-3 pr-12 border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 dark:text-white" placeholder="Enter your password" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-500">{showPassword ? <FaEyeSlash /> : <FaEye />}</button>
               </div>
+            </div>
+            <div className="flex items-center">
+              <input type="checkbox" id="remember" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded text-indigo-600 mr-2" />
+              <label htmlFor="remember" className="text-sm text-gray-600 dark:text-gray-400">Remember me</label>
             </div>
             <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50">
               {loading ? <span className="flex items-center justify-center"><div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>Signing in...</span> : <><FaUser className="inline mr-2" />Sign In</>}
@@ -115,6 +131,15 @@ const Login = () => {
             <button onClick={handleGoogleLogin} disabled={oauthLoading.google} className="flex items-center justify-center px-4 py-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50">{oauthLoading.google ? <div className="animate-spin h-5 w-5 border-2 border-red-500 border-t-transparent rounded-full" /> : <FaGoogle className="text-red-500 text-xl" />}</button>
             <button onClick={handleFacebookLogin} disabled={oauthLoading.facebook} className="flex items-center justify-center px-4 py-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50">{oauthLoading.facebook ? <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" /> : <FaFacebook className="text-blue-600 text-xl" />}</button>
             <button onClick={handleTwitterLogin} disabled={oauthLoading.twitter} className="flex items-center justify-center px-4 py-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50">{oauthLoading.twitter ? <div className="animate-spin h-5 w-5 border-2 border-sky-500 border-t-transparent rounded-full" /> : <FaTwitter className="text-sky-500 text-xl" />}</button>
+          </div>
+
+          <div className="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold">Demo Credentials</p>
+              <button onClick={fillDemoCredentials} className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg">Fill Demo</button>
+            </div>
+            <p className="text-sm"><FaEnvelope className="inline mr-2 text-indigo-500 text-xs" />demo@vaultix.com</p>
+            <p className="text-sm"><FaLock className="inline mr-2 text-indigo-500 text-xs" />demo123</p>
           </div>
         </div>
       </div>
