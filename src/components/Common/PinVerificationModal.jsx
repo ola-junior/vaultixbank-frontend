@@ -7,12 +7,14 @@ const PinVerificationModal = ({ isOpen, onClose, onVerify, title = 'Enter Transa
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [attempts, setAttempts] = useState(0);
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
   useEffect(() => {
     if (isOpen) {
       setPin('');
       setError('');
+      setAttempts(0);
       setTimeout(() => {
         inputRefs[0]?.current?.focus();
       }, 100);
@@ -34,6 +36,11 @@ const PinVerificationModal = ({ isOpen, onClose, onVerify, title = 'Enter Transa
     if (e.key === 'Backspace' && !pin[index] && index > 0) {
       inputRefs[index - 1]?.current?.focus();
     }
+    
+    // Submit on Enter if PIN is complete
+    if (e.key === 'Enter' && pin.length === 4 && !loading) {
+      handleVerify();
+    }
   };
 
   const handleVerify = async () => {
@@ -46,21 +53,45 @@ const PinVerificationModal = ({ isOpen, onClose, onVerify, title = 'Enter Transa
     setError('');
 
     try {
-      // ✅ Use the api service - works in both local and production
       const response = await api.post('/user/verify-pin', { pin });
       
       if (response.data.success) {
         onVerify(pin);
         onClose();
+      } else {
+        setError(response.data.message || 'Invalid PIN');
+        setAttempts(prev => prev + 1);
+        setPin('');
+        inputRefs[0]?.current?.focus();
       }
     } catch (error) {
       console.error('Verify PIN error:', error);
-      const errorMessage = error.response?.data?.message || 'Invalid PIN';
-      setError(errorMessage);
       
-      // Show needsSetup message if PIN not set
-      if (error.response?.data?.needsSetup) {
-        toast.error('Please set your transaction PIN first');
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      
+      if (error.response) {
+        const errorData = error.response.data;
+        
+        if (errorData?.needsSetup) {
+          toast.error('Please set your transaction PIN first');
+          onClose();
+          return;
+        }
+        
+        setError(errorData?.message || 'Invalid PIN');
+      } else if (error.request) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('An error occurred. Please try again.');
+      }
+      
+      setPin('');
+      inputRefs[0]?.current?.focus();
+      
+      // Too many attempts warning
+      if (newAttempts >= 3) {
+        toast.error('Multiple failed attempts. Please try again later.');
       }
     } finally {
       setLoading(false);
@@ -105,6 +136,7 @@ const PinVerificationModal = ({ isOpen, onClose, onVerify, title = 'Enter Transa
               onChange={(e) => handlePinChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className="w-14 h-14 text-center text-2xl font-bold border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white outline-none transition-all"
+              autoComplete="off"
             />
           ))}
         </div>

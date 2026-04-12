@@ -57,6 +57,14 @@ const PinSetupModal = ({ isOpen, onClose, onSuccess }) => {
       setError('Please enter a 4-digit PIN');
       return;
     }
+    
+    // Prevent weak PINs
+    const weakPins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
+    if (weakPins.includes(pin)) {
+      setError('Please choose a more secure PIN');
+      return;
+    }
+    
     setError('');
     setStep(2);
     setTimeout(() => {
@@ -79,19 +87,30 @@ const PinSetupModal = ({ isOpen, onClose, onSuccess }) => {
     setError('');
 
     try {
-      // ✅ Use the api service - works in both local and production
-      const response = await api.post('/user/set-pin', { pin, confirmPin });
+      const response = await api.post('/user/set-pin', { 
+        pin, 
+        confirmPin 
+      });
       
       if (response.data.success) {
         toast.success('Transaction PIN set successfully!');
         onSuccess();
         onClose();
+      } else {
+        setError(response.data.message || 'Failed to set PIN');
       }
     } catch (error) {
       console.error('Set PIN error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to set PIN';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      
+      if (error.response) {
+        // Server responded with error
+        setError(error.response.data?.message || 'Failed to set PIN');
+      } else if (error.request) {
+        // No response received
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('An error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
