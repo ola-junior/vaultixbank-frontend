@@ -14,6 +14,7 @@ import {
   FaChevronDown
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
@@ -269,14 +270,14 @@ const Navbar = ({ onMenuClick }) => {
                 aria-label="User menu"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
-                  {user?.profilePicture && user.profilePicture !== 'default-avatar.png' ? (
+                  {getProfileImageUrl(user?.profilePicture) ? (
                     <img 
-                      src={`http://localhost:5000/uploads/profiles/${user.profilePicture}`}
+                      src={getProfileImageUrl(user.profilePicture)}
                       alt={user?.name}
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <span>{user?.name?.charAt(0) || 'U'}</span>
+                    <span>{getUserInitials(user?.name)}</span>
                   )}
                 </div>
                 <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">

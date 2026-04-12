@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getProfileImageUrl, getUserInitials, getFirstName } from '../../utils/imageUrl';
 import { 
   FaHome, 
   FaExchangeAlt, 
@@ -36,22 +37,6 @@ const bottomMenuItems = [
   const handleLogout = () => {
     logout();
     onClose();
-  };
-
-  // Get user initials for avatar
-  const getUserInitials = () => {
-    if (!user?.name) return 'U';
-    const names = user.name.split(' ');
-    if (names.length >= 2) {
-      return (names[0][0] + names[1][0]).toUpperCase();
-    }
-    return user.name[0].toUpperCase();
-  };
-
-  // Get first name only
-  const getFirstName = () => {
-    if (!user?.name) return 'User';
-    return user.name.split(' ')[0];
   };
 
   return (
@@ -180,14 +165,14 @@ const bottomMenuItems = [
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full blur-md opacity-40"></div>
               <div className="relative w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold shadow-lg border-2 border-white dark:border-gray-700">
-                {user?.profilePicture && user.profilePicture !== 'default-avatar.png' ? (
+                {getProfileImageUrl(user?.profilePicture) ? (
                   <img 
-                    src={`http://localhost:5000/uploads/profiles/${user.profilePicture}`}
-                    alt={user.name}
+                    src={getProfileImageUrl(user.profilePicture)}
+                    alt={user?.name}
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  <span className="text-sm font-bold">{getUserInitials()}</span>
+                  <span className="text-sm font-bold">{getUserInitials(user?.name)}</span>
                 )}
               </div>
               {/* Online indicator */}
@@ -197,7 +182,7 @@ const bottomMenuItems = [
             {/* User Info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                {getFirstName()}
+                {getFirstName(user?.name)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {user?.email || 'user@example.com'}

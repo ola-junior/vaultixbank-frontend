@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 import { 
   FaShieldAlt, 
   FaBolt, 
@@ -39,6 +40,7 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import { motion, useInView } from 'framer-motion';
+import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 import toast from 'react-hot-toast';
 
 const Landing = () => {
@@ -292,14 +294,14 @@ const Landing = () => {
                       className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
-                        {user.profilePicture && user.profilePicture !== 'default-avatar.png' ? (
+                        {getProfileImageUrl(user?.profilePicture) ? (
                           <img 
-                            src={`http://localhost:5000/uploads/profiles/${user.profilePicture}`}
+                            src={getProfileImageUrl(user.profilePicture)}
                             alt={user.name}
                             className="w-full h-full rounded-full object-cover"
                           />
                         ) : (
-                          <span className="text-base">{user.name?.charAt(0) || 'U'}</span>
+                          <span className="text-base">{getUserInitials(user?.name)}</span>
                         )}
                       </div>
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">

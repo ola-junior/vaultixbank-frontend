@@ -16,6 +16,7 @@ import {
   FaTimes,
   FaCopy
 } from 'react-icons/fa';
+import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -123,14 +124,16 @@ const Profile = () => {
           <div className="flex flex-col sm:flex-row items-center -mt-12 sm:-mt-16">
             <div className="relative">
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-indigo-100 to-blue-100 dark:from-indigo-900 dark:to-blue-900 flex items-center justify-center overflow-hidden shadow-lg">
-                {user?.profilePicture && user.profilePicture !== 'default-avatar.png' ? (
+                {getProfileImageUrl(user?.profilePicture) ? (
                   <img 
-                    src={`http://localhost:5000/uploads/profiles/${user.profilePicture}`}
+                    src={getProfileImageUrl(user.profilePicture)}
                     alt={userName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <FaUserCircle className="w-full h-full text-indigo-400 dark:text-indigo-600" />
+                  <span className="text-4xl font-bold text-indigo-500 dark:text-indigo-400">
+                    {getUserInitials(userName)}
+                  </span>
                 )}
               </div>
               <label className={`absolute bottom-0 right-0 p-2 bg-indigo-600 rounded-full cursor-pointer hover:bg-indigo-700 transition-colors shadow-lg ${imageLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
