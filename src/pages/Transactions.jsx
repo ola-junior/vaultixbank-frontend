@@ -6,10 +6,14 @@ import {
   FaArrowDown, 
   FaFilter, 
   FaDownload,
-  FaSearch 
+  FaSearch,
+  FaReceipt 
 } from 'react-icons/fa';
+import TransactionReceipt from '../components/Common/TransactionReceipt';
+import { useAuth } from '../context/AuthContext';
 
 const Transactions = () => {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -19,6 +23,8 @@ const Transactions = () => {
     total: 0,
     pages: 1,
   });
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -59,7 +65,6 @@ const Transactions = () => {
   );
 
   const exportTransactions = () => {
-    // Create CSV content
     const headers = ['Date', 'Description', 'Type', 'Amount', 'Status'];
     const rows = filteredTransactions.map(t => [
       formatDate(t.createdAt),
@@ -74,13 +79,17 @@ const Transactions = () => {
       ...rows.map(row => row.join(','))
     ].join('\n');
     
-    // Download file
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+  };
+
+  const handleViewReceipt = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowReceipt(true);
   };
 
   return (
@@ -98,7 +107,7 @@ const Transactions = () => {
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
             >
               <FaDownload className="mr-2" />
-              Export
+              Export CSV
             </button>
           </div>
         </div>
@@ -117,7 +126,7 @@ const Transactions = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Search transactions..."
               />
             </div>
@@ -129,7 +138,7 @@ const Transactions = () => {
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === 'all'
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-indigo-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
@@ -165,7 +174,7 @@ const Transactions = () => {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
         ) : filteredTransactions.length === 0 ? (
           <div className="text-center py-12">
@@ -196,6 +205,9 @@ const Transactions = () => {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Receipt
                   </th>
                 </tr>
               </thead>
@@ -254,6 +266,15 @@ const Transactions = () => {
                         {transaction.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleViewReceipt(transaction)}
+                        className="p-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                        title="View Receipt"
+                      >
+                        <FaReceipt />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -288,6 +309,18 @@ const Transactions = () => {
           </div>
         )}
       </div>
+
+      {/* Receipt Modal */}
+      {showReceipt && selectedTransaction && (
+        <TransactionReceipt
+          transaction={selectedTransaction}
+          user={user}
+          onClose={() => {
+            setShowReceipt(false);
+            setSelectedTransaction(null);
+          }}
+        />
+      )}
     </div>
   );
 };
