@@ -16,7 +16,7 @@ import {
   FaCopy,
   FaShieldAlt,
   FaKey,
-  FaUpload
+  FaImage
 } from 'react-icons/fa';
 import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 import toast from 'react-hot-toast';
@@ -27,13 +27,21 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [bannerLoading, setBannerLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
   const fileInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
+  
   const [formData, setFormData] = useState({
     name: user?.name || '',
     phoneNumber: user?.phoneNumber || '',
     address: user?.address || '',
   });
+
+  // Default banner or user's custom banner
+  const defaultBanner = 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1200&h=300&fit=crop';
+  const [bannerUrl, setBannerUrl] = useState(user?.bannerImage || defaultBanner);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -69,7 +77,6 @@ const Profile = () => {
       return;
     }
 
-    // Show local preview immediately
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
     setImageLoading(true);
@@ -88,22 +95,15 @@ const Profile = () => {
       const data = await response.json();
       if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
 
-      // Save to backend
       await api.put('/user/profile', { profilePicture: data.secure_url });
 
-      // ✅ Force update user context + localStorage
-      const updatedUser = {
-        ...user,
-        profilePicture: data.secure_url,
-        _profileUpdated: Date.now(),
-      };
+      const updatedUser = { ...user, profilePicture: data.secure_url, _profileUpdated: Date.now() };
       updateUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      setPreviewUrl(null); // clear local preview — use Cloudinary URL now
+      setPreviewUrl(null);
 
       toast.success('Profile picture updated!');
 
-      // Refresh from server to confirm
       setTimeout(async () => {
         try {
           const meRes = await api.get('/auth/me');
@@ -120,6 +120,56 @@ const Profile = () => {
       toast.error('Failed to upload image. Please try again.');
     } finally {
       setImageLoading(false);
+    }
+  };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Banner image should be less than 10MB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    const localPreview = URL.createObjectURL(file);
+    setBannerPreview(localPreview);
+    setBannerLoading(true);
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      uploadData.append('upload_preset', 'vaultix_profiles');
+      uploadData.append('cloud_name', 'dlfo69li4');
+
+      const response = await fetch('https://api.cloudinary.com/v1_1/dlfo69li4/image/upload', {
+        method: 'POST',
+        body: uploadData,
+      });
+
+      const data = await response.json();
+      if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
+
+      await api.put('/user/profile', { bannerImage: data.secure_url });
+
+      const updatedUser = { ...user, bannerImage: data.secure_url };
+      updateUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setBannerUrl(data.secure_url);
+      setBannerPreview(null);
+
+      toast.success('Banner updated successfully!');
+
+    } catch (error) {
+      console.error('Banner upload error:', error);
+      setBannerPreview(null);
+      toast.error('Failed to upload banner. Please try again.');
+    } finally {
+      setBannerLoading(false);
     }
   };
 
@@ -148,8 +198,8 @@ const Profile = () => {
   const userName = user?.name || 'User';
   const userCreatedAt = user?.createdAt || null;
 
-  // Determine which image to show: local preview > Cloudinary > initials
   const displayImageUrl = previewUrl || getProfileImageUrl(user?.profilePicture);
+  const displayBannerUrl = bannerPreview || user?.bannerImage || bannerUrl;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-0">
@@ -160,12 +210,37 @@ const Profile = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"
       >
-        {/* Banner */}
-        <div className="h-36 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 relative">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-4 left-10 w-20 h-20 bg-white rounded-full blur-2xl" />
-            <div className="absolute bottom-2 right-20 w-16 h-16 bg-white rounded-full blur-xl" />
-          </div>
+        {/* Banner - Customizable */}
+        <div className="relative h-36 md:h-44">
+          <img
+            src={displayBannerUrl}
+            alt="Profile Banner"
+            className="w-full h-full object-cover"
+          />
+          {/* Gradient overlay for better text visibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          
+          {/* Banner upload button */}
+          <button
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={bannerLoading}
+            className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all border border-white/20"
+          >
+            {bannerLoading ? (
+              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <FaImage className="text-xs" />
+            )}
+            Change Cover
+          </button>
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleBannerUpload}
+            disabled={bannerLoading}
+            className="hidden"
+          />
         </div>
 
         <div className="px-6 pb-6">
@@ -215,7 +290,7 @@ const Profile = () => {
               />
             </div>
 
-            {/* User info */}
+            {/* User info - NOW WITH PROPER CONTRAST */}
             <div className="flex-1 text-center sm:text-left sm:pb-2">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{userName}</h1>
               <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
@@ -331,7 +406,6 @@ const Profile = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Full Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
               <div className="relative">
@@ -348,7 +422,6 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
               <div className="relative">
@@ -363,7 +436,6 @@ const Profile = () => {
               <p className="mt-1 text-xs text-gray-400">Email cannot be changed</p>
             </div>
 
-            {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
               <div className="relative">
@@ -380,7 +452,6 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Account Number */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Number</label>
               <div className="relative">
@@ -402,7 +473,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Address */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
             <div className="relative">
