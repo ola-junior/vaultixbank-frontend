@@ -1,9 +1,12 @@
 import React from 'react';
 import { formatCurrency } from '../../utils/formatters';
 
-const BalanceCard = ({ title, value, icon: Icon, color, change }) => {
+const BalanceCard = ({ title, value, icon: Icon, color, change, isBalanceHidden = false }) => {
   // Format the display value
   const displayValue = () => {
+    if (isBalanceHidden) {
+      return '••••••';
+    }
     if (typeof value === 'number') {
       if (title.toLowerCase().includes('balance') || 
           title.toLowerCase().includes('credit') || 

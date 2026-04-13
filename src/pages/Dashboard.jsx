@@ -5,7 +5,7 @@ import ATMCard from '../components/Dashboard/ATMCard';
 import BalanceCard from '../components/Dashboard/BalanceCard';
 import QuickActions from '../components/Dashboard/QuickActions';
 import RecentTransactions from '../components/Dashboard/RecentTransactions';
-import { FaWallet, FaArrowUp, FaArrowDown, FaExchangeAlt } from 'react-icons/fa';
+import { FaWallet, FaArrowUp, FaArrowDown, FaExchangeAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { formatCurrency } from '../utils/formatters';
 
 const Dashboard = () => {
@@ -18,6 +18,17 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // ✅ Balance privacy toggle - default to hidden (true = hidden)
+  const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
+    const saved = localStorage.getItem('hideBalance');
+    return saved ? saved === 'true' : true; // Default to hidden for privacy
+  });
+
+  // Save preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('hideBalance', isBalanceHidden.toString());
+  }, [isBalanceHidden]);
 
   // Refresh when component mounts or when navigating back
   useEffect(() => {
@@ -111,6 +122,14 @@ const Dashboard = () => {
     }
   };
 
+  // ✅ Helper function to display balance (hidden or actual)
+  const displayBalance = (balance) => {
+    if (isBalanceHidden) {
+      return '••••••';
+    }
+    return formatCurrency(balance);
+  };
+
   const statCards = [
     {
       title: 'Available Balance',
@@ -118,6 +137,7 @@ const Dashboard = () => {
       icon: FaWallet,
       color: 'bg-gradient-to-br from-blue-500 to-cyan-500',
       change: null,
+      isBalance: true, // ✅ Mark as balance card
     },
     {
       title: 'Total Credits',
@@ -125,6 +145,7 @@ const Dashboard = () => {
       icon: FaArrowDown,
       color: 'bg-gradient-to-br from-green-500 to-emerald-500',
       change: null,
+      isBalance: false,
     },
     {
       title: 'Total Debits',
@@ -132,6 +153,7 @@ const Dashboard = () => {
       icon: FaArrowUp,
       color: 'bg-gradient-to-br from-red-500 to-rose-500',
       change: null,
+      isBalance: false,
     },
     {
       title: 'Transactions',
@@ -139,6 +161,7 @@ const Dashboard = () => {
       icon: FaExchangeAlt,
       color: 'bg-gradient-to-br from-purple-500 to-violet-500',
       change: null,
+      isBalance: false,
     },
   ];
 
@@ -186,12 +209,27 @@ const Dashboard = () => {
             Here's your financial overview for today.
           </p>
           
-          {/* Quick Balance Display */}
+          {/* ✅ Quick Balance Display with Eye Toggle */}
           <div className="mt-4 inline-block bg-white/10 backdrop-blur-sm rounded-2xl px-6 py-3">
-            <p className="text-sm text-white/70">Available Balance</p>
-            <p className="text-3xl font-bold">
-              {formatCurrency(user?.balance || 0)}
-            </p>
+            <div className="flex items-center gap-3">
+              <div>
+                <p className="text-sm text-white/70">Available Balance</p>
+                <p className="text-3xl font-bold">
+                  {displayBalance(user?.balance || 0)}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsBalanceHidden(!isBalanceHidden)}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                aria-label={isBalanceHidden ? "Show balance" : "Hide balance"}
+              >
+                {isBalanceHidden ? (
+                  <FaEye className="text-white text-lg" />
+                ) : (
+                  <FaEyeSlash className="text-white text-lg" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -211,6 +249,7 @@ const Dashboard = () => {
             icon={stat.icon}
             color={stat.color}
             change={stat.change}
+            isBalanceHidden={stat.isBalance ? isBalanceHidden : false}
           />
         ))}
       </div>

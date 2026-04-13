@@ -19,7 +19,8 @@ import {
   FaInfoCircle,
   FaLock,
   FaCalendarAlt,
-  FaShieldAlt
+  FaShieldAlt,
+  FaWallet,
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -41,6 +42,7 @@ const Transfer = () => {
   const [recipientName, setRecipientName] = useState('');
   const [isInternalTransfer, setIsInternalTransfer] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
+  const [selectedWithdrawMethod, setSelectedWithdrawMethod] = useState('bank');
   const [cardFlipped, setCardFlipped] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -51,7 +53,7 @@ const Transfer = () => {
     description: '',
   });
 
-  // Card payment form state
+  // Card deposit form state
   const [cardData, setCardData] = useState({
     cardNumber: '',
     cardHolder: '',
@@ -60,7 +62,7 @@ const Transfer = () => {
     cvv: '',
   });
 
-  // Bank transfer form state
+  // Bank deposit form state
   const [bankData, setBankData] = useState({
     accountName: '',
     accountNumber: '',
@@ -72,6 +74,25 @@ const Transfer = () => {
   const [ussdData, setUssdData] = useState({
     phone: '',
     network: '',
+  });
+
+  // Withdraw destination state
+  const [withdrawBankData, setWithdrawBankData] = useState({
+    accountName: '',
+    accountNumber: '',
+    bankName: '',
+  });
+
+  const [withdrawWalletData, setWithdrawWalletData] = useState({
+    walletPhone: '',
+    walletProvider: '',
+    walletName: '',
+  });
+
+  const [withdrawCardData, setWithdrawCardData] = useState({
+    cardNumber: '',
+    cardHolder: '',
+    bankName: '',
   });
 
   const tabs = [
@@ -106,6 +127,19 @@ const Transfer = () => {
     { code: 'OTHER', name: 'Other / My bank not listed' },
   ];
 
+  const nigerianBanksNoInternal = nigerianBanks.filter(b => b.code !== 'VAULTIX');
+
+  const mobileWalletProviders = [
+    { code: 'OPAY', name: 'OPay' },
+    { code: 'PALMPAY', name: 'PalmPay' },
+    { code: 'KUDABANK', name: 'Kuda Bank' },
+    { code: 'MONIEPOINT', name: 'Moniepoint' },
+    { code: 'CHIPPER', name: 'Chipper Cash' },
+    { code: 'CARBON', name: 'Carbon' },
+    { code: 'PIGGYVEST', name: 'PiggyVest' },
+    { code: 'COWRYWISE', name: 'Cowrywise' },
+  ];
+
   const nigerianNetworks = [
     { code: 'MTN', name: 'MTN Nigeria' },
     { code: 'AIRTEL', name: 'Airtel Nigeria' },
@@ -113,16 +147,22 @@ const Transfer = () => {
     { code: '9MOBILE', name: '9Mobile' },
   ];
 
-  const paymentMethods = [
+  const depositMethods = [
     { id: 'card', name: 'Debit / Credit Card', icon: FaCreditCard, color: 'from-purple-500 to-pink-500', description: 'Visa, Mastercard, Verve' },
     { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, color: 'from-blue-500 to-cyan-500', description: 'Direct from your bank' },
     { id: 'ussd', name: 'USSD', icon: FaMobileAlt, color: 'from-green-500 to-emerald-500', description: 'Works without internet' },
   ];
 
+  const withdrawMethods = [
+    { id: 'bank', name: 'Bank Account', icon: FaUniversity, color: 'from-blue-500 to-cyan-500', description: 'Nigerian bank account' },
+    { id: 'wallet', name: 'Mobile Wallet', icon: FaWallet, color: 'from-green-500 to-emerald-500', description: 'OPay, PalmPay & more' },
+    { id: 'card', name: 'Debit Card', icon: FaCreditCard, color: 'from-purple-500 to-pink-500', description: 'Card linked to account' },
+  ];
+
   const quickAmounts = {
     transfer: [1000, 5000, 10000, 50000],
     deposit: [5000, 10000, 25000, 50000],
-    withdraw: [5000, 10000, 25000, 50000]
+    withdraw: [5000, 10000, 25000, 50000],
   };
 
   useEffect(() => {
@@ -154,14 +194,12 @@ const Transfer = () => {
   const handleCardChange = (e) => {
     const { name, value } = e.target;
     let formatted = value;
-
     if (name === 'cardNumber') {
       formatted = value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
     }
     if (name === 'cvv') {
       formatted = value.replace(/\D/g, '').slice(0, 4);
     }
-
     setCardData({ ...cardData, [name]: formatted });
   };
 
@@ -173,6 +211,25 @@ const Transfer = () => {
   const handleUssdChange = (e) => {
     const { name, value } = e.target;
     setUssdData({ ...ussdData, [name]: value });
+  };
+
+  const handleWithdrawBankChange = (e) => {
+    const { name, value } = e.target;
+    setWithdrawBankData({ ...withdrawBankData, [name]: value });
+  };
+
+  const handleWithdrawWalletChange = (e) => {
+    const { name, value } = e.target;
+    setWithdrawWalletData({ ...withdrawWalletData, [name]: value });
+  };
+
+  const handleWithdrawCardChange = (e) => {
+    const { name, value } = e.target;
+    let formatted = value;
+    if (name === 'cardNumber') {
+      formatted = value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+    }
+    setWithdrawCardData({ ...withdrawCardData, [name]: formatted });
   };
 
   const formatCardDisplay = (number) => {
@@ -201,7 +258,7 @@ const Transfer = () => {
       const response = await api.post('/transactions/verify-account', {
         accountNumber: formData.recipientAccount,
         bankCode: formData.recipientBank,
-        bankName: formData.recipientBank === 'OTHER' ? formData.recipientCustomBank : undefined
+        bankName: formData.recipientBank === 'OTHER' ? formData.recipientCustomBank : undefined,
       });
       if (response.data.success) {
         const data = response.data.data;
@@ -218,6 +275,26 @@ const Transfer = () => {
     } finally {
       setVerifyingAccount(false);
     }
+  };
+
+  const validateWithdraw = () => {
+    if (selectedWithdrawMethod === 'bank') {
+      if (!withdrawBankData.accountName.trim()) { toast.error('Please enter account name'); return false; }
+      if (!withdrawBankData.accountNumber || withdrawBankData.accountNumber.length < 10) { toast.error('Please enter a valid 10-digit account number'); return false; }
+      if (!withdrawBankData.bankName) { toast.error('Please select your bank'); return false; }
+    }
+    if (selectedWithdrawMethod === 'wallet') {
+      if (!withdrawWalletData.walletProvider) { toast.error('Please select a wallet provider'); return false; }
+      if (!withdrawWalletData.walletPhone || withdrawWalletData.walletPhone.length < 11) { toast.error('Please enter a valid 11-digit phone number'); return false; }
+      if (!withdrawWalletData.walletName.trim()) { toast.error('Please enter the account name on the wallet'); return false; }
+    }
+    if (selectedWithdrawMethod === 'card') {
+      const raw = withdrawCardData.cardNumber.replace(/\s/g, '');
+      if (raw.length < 16) { toast.error('Please enter a valid 16-digit card number'); return false; }
+      if (!withdrawCardData.cardHolder.trim()) { toast.error('Please enter the cardholder name'); return false; }
+      if (!withdrawCardData.bankName) { toast.error('Please select the card\'s issuing bank'); return false; }
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -245,16 +322,26 @@ const Transfer = () => {
       }
     }
 
+    if (activeTab === 'withdraw') {
+      if (!validateWithdraw()) return;
+    }
+
     setPendingTransaction({
       type: activeTab,
       data: {
         ...formData,
         recipientName,
         isInternal: isInternalTransfer,
+        // deposit
         paymentMethod: selectedPaymentMethod,
-        cardData: selectedPaymentMethod === 'card' ? cardData : undefined,
-        bankData: selectedPaymentMethod === 'bank' ? bankData : undefined,
-        ussdData: selectedPaymentMethod === 'ussd' ? ussdData : undefined,
+        cardData: activeTab === 'deposit' && selectedPaymentMethod === 'card' ? cardData : undefined,
+        bankData: activeTab === 'deposit' && selectedPaymentMethod === 'bank' ? bankData : undefined,
+        ussdData: activeTab === 'deposit' && selectedPaymentMethod === 'ussd' ? ussdData : undefined,
+        // withdraw
+        withdrawMethod: selectedWithdrawMethod,
+        withdrawBankData: activeTab === 'withdraw' && selectedWithdrawMethod === 'bank' ? withdrawBankData : undefined,
+        withdrawWalletData: activeTab === 'withdraw' && selectedWithdrawMethod === 'wallet' ? withdrawWalletData : undefined,
+        withdrawCardData: activeTab === 'withdraw' && selectedWithdrawMethod === 'card' ? withdrawCardData : undefined,
       },
     });
     setShowPinModal(true);
@@ -287,6 +374,10 @@ const Transfer = () => {
           break;
         case 'withdraw':
           endpoint = '/transactions/withdraw';
+          requestData.withdrawMethod = pendingTransaction.data.withdrawMethod;
+          requestData.withdrawBankData = pendingTransaction.data.withdrawBankData;
+          requestData.withdrawWalletData = pendingTransaction.data.withdrawWalletData;
+          requestData.withdrawCardData = pendingTransaction.data.withdrawCardData;
           successMessage = `✅ Withdrawal of ${formatCurrency(pendingTransaction.data.amount)} completed!`;
           break;
         default:
@@ -302,10 +393,14 @@ const Transfer = () => {
         setCardData({ cardNumber: '', cardHolder: '', expiryMonth: '', expiryYear: '', cvv: '' });
         setBankData({ accountName: '', accountNumber: '', bankName: '', routingNumber: '' });
         setUssdData({ phone: '', network: '' });
+        setWithdrawBankData({ accountName: '', accountNumber: '', bankName: '' });
+        setWithdrawWalletData({ walletPhone: '', walletProvider: '', walletName: '' });
+        setWithdrawCardData({ cardNumber: '', cardHolder: '', bankName: '' });
         setRecipientVerified(false);
         setRecipientName('');
         setIsInternalTransfer(false);
         setSelectedPaymentMethod('card');
+        setSelectedWithdrawMethod('bank');
         setTimeout(() => navigate('/dashboard', { replace: true }), 2000);
       }
     } catch (error) {
@@ -348,8 +443,8 @@ const Transfer = () => {
 
   const currentTab = tabs.find(t => t.id === activeTab);
   const cardBrand = getCardBrand(cardData.cardNumber);
+  const withdrawCardBrand = getCardBrand(withdrawCardData.cardNumber);
 
-  // Months and years for expiry
   const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
@@ -358,6 +453,7 @@ const Transfer = () => {
     <>
       <div className="max-w-2xl mx-auto">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+
           {/* Tabs */}
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex -mb-px">
@@ -365,10 +461,11 @@ const Transfer = () => {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex-1 py-4 px-1 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeTab === tab.id
+                  className={`flex-1 py-4 px-1 text-center border-b-2 font-medium text-sm transition-all duration-200 ${
+                    activeTab === tab.id
                       ? `border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-gradient-to-r ${tab.color} bg-clip-text text-transparent`
                       : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                    }`}
+                  }`}
                 >
                   <tab.icon className="inline-block mr-2" />
                   {tab.label}
@@ -383,26 +480,24 @@ const Transfer = () => {
 
               {/* ── DEPOSIT SECTION ── */}
               {activeTab === 'deposit' && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-5"
-                >
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+
                   {/* Payment Method Selector */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       Choose Payment Method
                     </label>
                     <div className="grid grid-cols-3 gap-3">
-                      {paymentMethods.map((method) => (
+                      {depositMethods.map((method) => (
                         <button
                           key={method.id}
                           type="button"
                           onClick={() => setSelectedPaymentMethod(method.id)}
-                          className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${selectedPaymentMethod === method.id
+                          className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
+                            selectedPaymentMethod === method.id
                               ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-md'
                               : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700'
-                            }`}
+                          }`}
                         >
                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 bg-gradient-to-br ${method.color}`}>
                             <method.icon className="text-white text-base" />
@@ -416,38 +511,14 @@ const Transfer = () => {
                     </div>
                   </div>
 
-                  {/* ── CARD FORM ── */}
                   <AnimatePresence mode="wait">
+                    {/* ── CARD FORM ── */}
                     {selectedPaymentMethod === 'card' && (
-                      <motion.div
-                        key="card-form"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.2 }}
-                        className="space-y-4"
-                      >
+                      <motion.div key="card-form" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
                         {/* Card Preview */}
-                        <div
-                          className="relative h-44 rounded-2xl overflow-hidden cursor-pointer select-none"
-                          style={{ perspective: '1000px' }}
-                          onClick={() => setCardFlipped(!cardFlipped)}
-                        >
-                          <motion.div
-                            className="w-full h-full relative"
-                            style={{ transformStyle: 'preserve-3d' }}
-                            animate={{ rotateY: cardFlipped ? 180 : 0 }}
-                            transition={{ duration: 0.5, ease: 'easeInOut' }}
-                          >
-                            {/* Front */}
-                            <div
-                              className="absolute inset-0 rounded-2xl p-5 flex flex-col justify-between"
-                              style={{
-                                backfaceVisibility: 'hidden',
-                                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%)',
-                              }}
-                            >
-                              {/* Top row */}
+                        <div className="relative h-44 rounded-2xl overflow-hidden cursor-pointer select-none" style={{ perspective: '1000px' }} onClick={() => setCardFlipped(!cardFlipped)}>
+                          <motion.div className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }} animate={{ rotateY: cardFlipped ? 180 : 0 }} transition={{ duration: 0.5, ease: 'easeInOut' }}>
+                            <div className="absolute inset-0 rounded-2xl p-5 flex flex-col justify-between" style={{ backfaceVisibility: 'hidden', background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%)' }}>
                               <div className="flex justify-between items-start">
                                 <div>
                                   <p className="text-purple-200 text-[10px] font-medium uppercase tracking-wider">Vaultix</p>
@@ -459,63 +530,35 @@ const Transfer = () => {
                                   </div>
                                 )}
                               </div>
-
-                              {/* Chip */}
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-7 rounded bg-gradient-to-br from-yellow-300 to-yellow-500 opacity-90 flex items-center justify-center">
                                   <div className="w-7 h-4 border border-yellow-600/50 rounded-sm grid grid-cols-3 gap-px p-0.5">
-                                    {[...Array(9)].map((_, i) => (
-                                      <div key={i} className="bg-yellow-600/40 rounded-[1px]" />
-                                    ))}
+                                    {[...Array(9)].map((_, i) => <div key={i} className="bg-yellow-600/40 rounded-[1px]" />)}
                                   </div>
                                 </div>
-                                <div className="w-6 h-6 rounded-full border-2 border-white/30 flex items-center justify-center">
-                                  <div className="w-3 h-3 rounded-full border border-white/30" />
-                                </div>
                               </div>
-
-                              {/* Card Number */}
                               <div>
-                                <p className="text-white font-mono text-lg tracking-widest">
-                                  {formatCardDisplay(cardData.cardNumber)}
-                                </p>
+                                <p className="text-white font-mono text-lg tracking-widest">{formatCardDisplay(cardData.cardNumber)}</p>
                                 <div className="flex justify-between items-end mt-3">
                                   <div>
                                     <p className="text-purple-300 text-[9px] uppercase tracking-wider">Card Holder</p>
-                                    <p className="text-white text-sm font-medium mt-0.5 uppercase tracking-wide">
-                                      {cardData.cardHolder || 'YOUR NAME'}
-                                    </p>
+                                    <p className="text-white text-sm font-medium mt-0.5 uppercase tracking-wide">{cardData.cardHolder || 'YOUR NAME'}</p>
                                   </div>
                                   <div className="text-right">
                                     <p className="text-purple-300 text-[9px] uppercase tracking-wider">Expires</p>
-                                    <p className="text-white text-sm font-medium mt-0.5">
-                                      {cardData.expiryMonth || 'MM'}/{cardData.expiryYear?.slice(-2) || 'YY'}
-                                    </p>
+                                    <p className="text-white text-sm font-medium mt-0.5">{cardData.expiryMonth || 'MM'}/{cardData.expiryYear?.slice(-2) || 'YY'}</p>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                            {/* Back */}
-                            <div
-                              className="absolute inset-0 rounded-2xl flex flex-col justify-between"
-                              style={{
-                                backfaceVisibility: 'hidden',
-                                transform: 'rotateY(180deg)',
-                                background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-                              }}
-                            >
+                            <div className="absolute inset-0 rounded-2xl flex flex-col justify-between" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' }}>
                               <div className="h-10 bg-gray-900/70 mt-6" />
                               <div className="px-5 pb-5 space-y-3">
                                 <div className="bg-white/10 rounded-lg p-3 flex items-center justify-between">
                                   <div className="flex-1 h-7 bg-white/80 rounded-md flex items-center px-3">
-                                    <span className="font-mono text-gray-800 font-bold tracking-[0.3em] text-sm">
-                                      {cardData.cvv ? '•'.repeat(cardData.cvv.length) : '•••'}
-                                    </span>
+                                    <span className="font-mono text-gray-800 font-bold tracking-[0.3em] text-sm">{cardData.cvv ? '•'.repeat(cardData.cvv.length) : '•••'}</span>
                                   </div>
-                                  <p className="text-purple-300 text-[10px] ml-3 text-right">
-                                    CVV
-                                  </p>
+                                  <p className="text-purple-300 text-[10px] ml-3 text-right">CVV</p>
                                 </div>
                                 <p className="text-purple-400 text-[9px] text-center">Click to flip back</p>
                               </div>
@@ -524,117 +567,52 @@ const Transfer = () => {
                         </div>
                         <p className="text-center text-xs text-gray-400">Click card to see CVV side</p>
 
-                        {/* Card Fields */}
                         <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
-                          {/* Card Number */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                              Card Number
-                            </label>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Card Number</label>
                             <div className="relative">
                               <FaCreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input
-                                type="text"
-                                name="cardNumber"
-                                value={cardData.cardNumber}
-                                onChange={handleCardChange}
-                                placeholder="0000 0000 0000 0000"
-                                maxLength="19"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white"
-                              />
+                              <input type="text" name="cardNumber" value={cardData.cardNumber} onChange={handleCardChange} placeholder="0000 0000 0000 0000" maxLength="19" className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white" />
                             </div>
                           </div>
-
-                          {/* Cardholder Name */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                              Cardholder Name
-                            </label>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Cardholder Name</label>
                             <div className="relative">
                               <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input
-                                type="text"
-                                name="cardHolder"
-                                value={cardData.cardHolder}
-                                onChange={handleCardChange}
-                                placeholder="Name on card"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                              />
+                              <input type="text" name="cardHolder" value={cardData.cardHolder} onChange={handleCardChange} placeholder="Name on card" className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                             </div>
                           </div>
-
-                          {/* Expiry + CVV */}
                           <div className="grid grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                                Month
-                              </label>
-                              <select
-                                name="expiryMonth"
-                                value={cardData.expiryMonth}
-                                onChange={handleCardChange}
-                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                              >
+                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Month</label>
+                              <select name="expiryMonth" value={cardData.expiryMonth} onChange={handleCardChange} className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
                                 <option value="">MM</option>
                                 {months.map(m => <option key={m} value={m}>{m}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                                Year
-                              </label>
-                              <select
-                                name="expiryYear"
-                                value={cardData.expiryYear}
-                                onChange={handleCardChange}
-                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                              >
+                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Year</label>
+                              <select name="expiryYear" value={cardData.expiryYear} onChange={handleCardChange} className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
                                 <option value="">YY</option>
                                 {years.map(y => <option key={y} value={y}>{y}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                                CVV
-                              </label>
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  name="cvv"
-                                  value={cardData.cvv}
-                                  onChange={handleCardChange}
-                                  onFocus={() => setCardFlipped(true)}
-                                  onBlur={() => setCardFlipped(false)}
-                                  placeholder="•••"
-                                  maxLength="4"
-                                  className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono"
-                                />
-                              </div>
+                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">CVV</label>
+                              <input type="text" name="cvv" value={cardData.cvv} onChange={handleCardChange} onFocus={() => setCardFlipped(true)} onBlur={() => setCardFlipped(false)} placeholder="•••" maxLength="4" className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                             </div>
                           </div>
                         </div>
-
-                        {/* Security Note */}
                         <div className="flex items-center gap-2 px-1">
                           <FaShieldAlt className="text-green-500 text-sm flex-shrink-0" />
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Your card details are encrypted and secured with 256-bit SSL. We never store your CVV.
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Your card details are encrypted and secured with 256-bit SSL. We never store your CVV.</p>
                         </div>
                       </motion.div>
                     )}
 
                     {/* ── BANK TRANSFER FORM ── */}
                     {selectedPaymentMethod === 'bank' && (
-                      <motion.div
-                        key="bank-form"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.2 }}
-                        className="space-y-4"
-                      >
-                        {/* Bank Transfer Instructions Banner */}
+                      <motion.div key="bank-form" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-2xl p-4">
                           <div className="flex items-start gap-3">
                             <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-800 flex items-center justify-center flex-shrink-0">
@@ -642,105 +620,47 @@ const Transfer = () => {
                             </div>
                             <div>
                               <p className="text-blue-800 dark:text-blue-200 text-sm font-semibold">Bank Transfer Details</p>
-                              <p className="text-blue-600 dark:text-blue-300 text-xs mt-0.5 leading-relaxed">
-                                Enter your source bank account details. Funds will be pulled from this account and credited to your Vaultix wallet.
-                              </p>
+                              <p className="text-blue-600 dark:text-blue-300 text-xs mt-0.5 leading-relaxed">Enter your source bank account details. Funds will be pulled from this account and credited to your Vaultix wallet.</p>
                             </div>
                           </div>
                         </div>
-
                         <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
-                          {/* Account Name */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                              Account Name
-                            </label>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Name</label>
                             <div className="relative">
                               <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input
-                                type="text"
-                                name="accountName"
-                                value={bankData.accountName}
-                                onChange={handleBankChange}
-                                placeholder="Full name on bank account"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                              />
+                              <input type="text" name="accountName" value={bankData.accountName} onChange={handleBankChange} placeholder="Full name on bank account" className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                             </div>
                           </div>
-
-                          {/* Bank Name */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                              Source Bank
-                            </label>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Source Bank</label>
                             <div className="relative">
                               <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <select
-                                name="bankName"
-                                value={bankData.bankName}
-                                onChange={handleBankChange}
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none"
-                              >
+                              <select name="bankName" value={bankData.bankName} onChange={handleBankChange} className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none">
                                 <option value="">Select your bank</option>
-                                {nigerianBanks.filter(b => b.code !== 'VAULTIX').map((bank) => (
-                                  <option key={bank.code} value={bank.code}>{bank.name}</option>
-                                ))}
+                                {nigerianBanksNoInternal.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
                               </select>
                             </div>
                           </div>
-
-                          {/* Account Number */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                              Account Number
-                            </label>
-                            <input
-                              type="text"
-                              name="accountNumber"
-                              value={bankData.accountNumber}
-                              onChange={handleBankChange}
-                              placeholder="10-digit account number"
-                              maxLength="10"
-                              className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono"
-                            />
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Number</label>
+                            <input type="text" name="accountNumber" value={bankData.accountNumber} onChange={handleBankChange} placeholder="10-digit account number" maxLength="10" className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                           </div>
-
-                          {/* Reference (optional) */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                              Transfer Reference <span className="font-normal normal-case text-gray-400">(optional)</span>
-                            </label>
-                            <input
-                              type="text"
-                              name="routingNumber"
-                              value={bankData.routingNumber}
-                              onChange={handleBankChange}
-                              placeholder="e.g. DEP/2024/001"
-                              className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                            />
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Transfer Reference <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                            <input type="text" name="routingNumber" value={bankData.routingNumber} onChange={handleBankChange} placeholder="e.g. DEP/2024/001" className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                           </div>
                         </div>
-
-                        {/* Processing time notice */}
                         <div className="flex items-center gap-2 px-1">
                           <FaInfoCircle className="text-blue-400 text-sm flex-shrink-0" />
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Bank transfers typically process within 2–5 minutes during business hours.
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Bank transfers typically process within 2–5 minutes during business hours.</p>
                         </div>
                       </motion.div>
                     )}
 
                     {/* ── USSD FORM ── */}
                     {selectedPaymentMethod === 'ussd' && (
-                      <motion.div
-                        key="ussd-form"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.2 }}
-                        className="space-y-4"
-                      >
+                      <motion.div key="ussd-form" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl p-4">
                           <div className="flex items-start gap-3">
                             <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center flex-shrink-0">
@@ -748,71 +668,40 @@ const Transfer = () => {
                             </div>
                             <div>
                               <p className="text-green-800 dark:text-green-200 text-sm font-semibold">USSD Payment</p>
-                              <p className="text-green-600 dark:text-green-300 text-xs mt-0.5 leading-relaxed">
-                                After submitting, you'll receive a USSD prompt on your phone to authorize the payment. Works without internet.
-                              </p>
+                              <p className="text-green-600 dark:text-green-300 text-xs mt-0.5 leading-relaxed">After submitting, you'll receive a USSD prompt on your phone to authorize the payment. Works without internet.</p>
                             </div>
                           </div>
                         </div>
-
                         <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
-                          {/* Network */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wider">
-                              Mobile Network
-                            </label>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wider">Mobile Network</label>
                             <div className="grid grid-cols-4 gap-2">
                               {nigerianNetworks.map((net) => (
-                                <button
-                                  key={net.code}
-                                  type="button"
-                                  onClick={() => setUssdData({ ...ussdData, network: net.code })}
-                                  className={`py-2.5 px-1 rounded-xl border-2 text-center transition-all text-xs font-semibold ${ussdData.network === net.code
-                                      ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 hover:border-gray-300'
-                                    }`}
-                                >
+                                <button key={net.code} type="button" onClick={() => setUssdData({ ...ussdData, network: net.code })}
+                                  className={`py-2.5 px-1 rounded-xl border-2 text-center transition-all text-xs font-semibold ${ussdData.network === net.code ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 hover:border-gray-300'}`}>
                                   {net.code}
                                 </button>
                               ))}
                             </div>
                           </div>
-
-                          {/* Phone Number */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                              Phone Number
-                            </label>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Phone Number</label>
                             <div className="relative">
                               <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                                 <FaMobileAlt className="text-gray-400 text-sm" />
                                 <span className="text-gray-400 text-sm ml-1">+234</span>
                               </div>
-                              <input
-                                type="tel"
-                                name="phone"
-                                value={ussdData.phone}
-                                onChange={handleUssdChange}
-                                placeholder="08012345678"
-                                maxLength="11"
-                                className="w-full pl-20 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono"
-                              />
+                              <input type="tel" name="phone" value={ussdData.phone} onChange={handleUssdChange} placeholder="08012345678" maxLength="11" className="w-full pl-20 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                             </div>
                           </div>
-
-                          {/* USSD Code Preview */}
                           {ussdData.network && formData.amount && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              className="bg-gray-900 rounded-xl p-4 text-center"
-                            >
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-gray-900 rounded-xl p-4 text-center">
                               <p className="text-gray-400 text-xs mb-1">Dial this code to pay</p>
                               <p className="text-green-400 font-mono text-xl font-bold tracking-wider">
                                 {ussdData.network === 'MTN' ? `*737*${formData.amount}#` :
-                                  ussdData.network === 'AIRTEL' ? `*901*${formData.amount}#` :
-                                    ussdData.network === 'GLO' ? `*805*${formData.amount}#` :
-                                      `*322*${formData.amount}#`}
+                                 ussdData.network === 'AIRTEL' ? `*901*${formData.amount}#` :
+                                 ussdData.network === 'GLO' ? `*805*${formData.amount}#` :
+                                 `*322*${formData.amount}#`}
                               </p>
                               <p className="text-gray-500 text-[10px] mt-1">Amount: {formatCurrency(formData.amount)}</p>
                             </motion.div>
@@ -832,31 +721,310 @@ const Transfer = () => {
                 </motion.div>
               )}
 
-              {/* ── TRANSFER SECTION ── (unchanged) */}
+              {/* ── WITHDRAW SECTION ── */}
+              {activeTab === 'withdraw' && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+
+                  {/* Withdraw Destination Selector */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Where are you withdrawing to?
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {withdrawMethods.map((method) => (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => setSelectedWithdrawMethod(method.id)}
+                          className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
+                            selectedWithdrawMethod === method.id
+                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 shadow-md'
+                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700'
+                          }`}
+                        >
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 bg-gradient-to-br ${method.color}`}>
+                            <method.icon className="text-white text-base" />
+                          </div>
+                          <p className={`text-xs font-semibold ${selectedWithdrawMethod === method.id ? 'text-orange-700 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                            {method.name}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{method.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+
+                    {/* ── WITHDRAW TO BANK ACCOUNT ── */}
+                    {selectedWithdrawMethod === 'bank' && (
+                      <motion.div key="withdraw-bank" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-2xl p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-800 flex items-center justify-center flex-shrink-0">
+                              <FaUniversity className="text-blue-600 dark:text-blue-300 text-sm" />
+                            </div>
+                            <div>
+                              <p className="text-blue-800 dark:text-blue-200 text-sm font-semibold">Withdraw to Bank Account</p>
+                              <p className="text-blue-600 dark:text-blue-300 text-xs mt-0.5 leading-relaxed">Enter the Nigerian bank account details you want to receive funds in. Must be a valid account in your name.</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
+                          {/* Destination Bank */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Destination Bank</label>
+                            <div className="relative">
+                              <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                              <select name="bankName" value={withdrawBankData.bankName} onChange={handleWithdrawBankChange}
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none">
+                                <option value="">Select destination bank</option>
+                                {nigerianBanksNoInternal.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Account Number */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Number</label>
+                            <input
+                              type="text"
+                              name="accountNumber"
+                              value={withdrawBankData.accountNumber}
+                              onChange={handleWithdrawBankChange}
+                              placeholder="10-digit account number"
+                              maxLength="10"
+                              className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono"
+                            />
+                          </div>
+
+                          {/* Account Name */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Name</label>
+                            <div className="relative">
+                              <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                              <input
+                                type="text"
+                                name="accountName"
+                                value={withdrawBankData.accountName}
+                                onChange={handleWithdrawBankChange}
+                                placeholder="Full name on the bank account"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 px-1">
+                          <FaInfoCircle className="text-blue-400 text-sm flex-shrink-0" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Withdrawals to bank accounts typically arrive within 5–10 minutes.</p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* ── WITHDRAW TO MOBILE WALLET ── */}
+                    {selectedWithdrawMethod === 'wallet' && (
+                      <motion.div key="withdraw-wallet" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center flex-shrink-0">
+                              <FaWallet className="text-green-600 dark:text-green-300 text-sm" />
+                            </div>
+                            <div>
+                              <p className="text-green-800 dark:text-green-200 text-sm font-semibold">Withdraw to Mobile Wallet</p>
+                              <p className="text-green-600 dark:text-green-300 text-xs mt-0.5 leading-relaxed">Funds will be sent to your mobile wallet account. Make sure the phone number matches the wallet account.</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
+                          {/* Wallet Provider Grid */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wider">Wallet Provider</label>
+                            <div className="grid grid-cols-4 gap-2">
+                              {mobileWalletProviders.map((provider) => (
+                                <button
+                                  key={provider.code}
+                                  type="button"
+                                  onClick={() => setWithdrawWalletData({ ...withdrawWalletData, walletProvider: provider.code })}
+                                  className={`py-2.5 px-1 rounded-xl border-2 text-center transition-all text-[10px] font-semibold leading-tight ${
+                                    withdrawWalletData.walletProvider === provider.code
+                                      ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 hover:border-gray-300'
+                                  }`}
+                                >
+                                  {provider.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Wallet Phone */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Wallet Phone Number</label>
+                            <div className="relative">
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                <FaMobileAlt className="text-gray-400 text-sm" />
+                                <span className="text-gray-400 text-sm ml-1">+234</span>
+                              </div>
+                              <input
+                                type="tel"
+                                name="walletPhone"
+                                value={withdrawWalletData.walletPhone}
+                                onChange={handleWithdrawWalletChange}
+                                placeholder="08012345678"
+                                maxLength="11"
+                                className="w-full pl-20 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Wallet Account Name */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Name on Wallet</label>
+                            <div className="relative">
+                              <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                              <input
+                                type="text"
+                                name="walletName"
+                                value={withdrawWalletData.walletName}
+                                onChange={handleWithdrawWalletChange}
+                                placeholder="Full name on wallet account"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 px-1">
+                          <FaInfoCircle className="text-green-400 text-sm flex-shrink-0" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Mobile wallet transfers are usually instant once confirmed.</p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* ── WITHDRAW TO DEBIT CARD ── */}
+                    {selectedWithdrawMethod === 'card' && (
+                      <motion.div key="withdraw-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
+                        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
+                              <FaCreditCard className="text-purple-600 dark:text-purple-300 text-sm" />
+                            </div>
+                            <div>
+                              <p className="text-purple-800 dark:text-purple-200 text-sm font-semibold">Withdraw to Debit Card</p>
+                              <p className="text-purple-600 dark:text-purple-300 text-xs mt-0.5 leading-relaxed">Enter your debit card number and the bank it belongs to. Funds will be credited to the linked account.</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Preview for Withdraw */}
+                        <div className="relative h-36 rounded-2xl overflow-hidden select-none"
+                          style={{ background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)' }}>
+                          <div className="absolute inset-0 p-5 flex flex-col justify-between">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-orange-200 text-[10px] font-medium uppercase tracking-wider">Withdrawal Card</p>
+                              </div>
+                              {withdrawCardBrand && (
+                                <div className="bg-white/20 px-2.5 py-1 rounded-md">
+                                  <p className="text-white text-xs font-bold tracking-widest">{withdrawCardBrand}</p>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-white font-mono text-lg tracking-widest">{formatCardDisplay(withdrawCardData.cardNumber)}</p>
+                              <div className="flex justify-between items-end mt-2">
+                                <div>
+                                  <p className="text-orange-300 text-[9px] uppercase tracking-wider">Card Holder</p>
+                                  <p className="text-white text-sm font-medium uppercase tracking-wide">{withdrawCardData.cardHolder || 'YOUR NAME'}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-orange-300 text-[9px] uppercase tracking-wider">Issuing Bank</p>
+                                  <p className="text-white text-xs font-medium">
+                                    {nigerianBanksNoInternal.find(b => b.code === withdrawCardData.bankName)?.name?.split(' ')[0] || '—'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
+                          {/* Card Number */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Card Number</label>
+                            <div className="relative">
+                              <FaCreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                              <input
+                                type="text"
+                                name="cardNumber"
+                                value={withdrawCardData.cardNumber}
+                                onChange={handleWithdrawCardChange}
+                                placeholder="0000 0000 0000 0000"
+                                maxLength="19"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Cardholder Name */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Cardholder Name</label>
+                            <div className="relative">
+                              <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                              <input
+                                type="text"
+                                name="cardHolder"
+                                value={withdrawCardData.cardHolder}
+                                onChange={handleWithdrawCardChange}
+                                placeholder="Name printed on card"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Issuing Bank */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Card's Issuing Bank</label>
+                            <div className="relative">
+                              <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                              <select
+                                name="bankName"
+                                value={withdrawCardData.bankName}
+                                onChange={handleWithdrawCardChange}
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none"
+                              >
+                                <option value="">Select issuing bank</option>
+                                {nigerianBanksNoInternal.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 px-1">
+                          <FaShieldAlt className="text-orange-400 text-sm flex-shrink-0" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400">We only use your card number to identify the linked bank account. No charges are made to this card.</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+
+              {/* ── TRANSFER SECTION ── */}
               {activeTab === 'transfer' && (
                 <AnimatePresence>
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4"
-                  >
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Bank</label>
                       <div className="relative">
                         <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <select
-                          name="recipientBank"
-                          required
-                          value={formData.recipientBank}
-                          onChange={handleChange}
-                          disabled={recipientVerified}
-                          className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : 'border-gray-300 dark:border-gray-600'}`}
-                        >
+                        <select name="recipientBank" required value={formData.recipientBank} onChange={handleChange} disabled={recipientVerified}
+                          className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : 'border-gray-300 dark:border-gray-600'}`}>
                           <option value="">Select recipient bank</option>
-                          {nigerianBanks.map((bank) => (
-                            <option key={bank.code} value={bank.code}>{bank.name}</option>
-                          ))}
+                          {nigerianBanks.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
                         </select>
                       </div>
                     </div>
@@ -864,16 +1032,9 @@ const Transfer = () => {
                     {formData.recipientBank === 'OTHER' && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter Bank Name</label>
-                        <input
-                          type="text"
-                          name="recipientCustomBank"
-                          required
-                          value={formData.recipientCustomBank}
-                          onChange={handleChange}
-                          disabled={recipientVerified}
+                        <input type="text" name="recipientCustomBank" required value={formData.recipientCustomBank} onChange={handleChange} disabled={recipientVerified}
                           className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : 'border-gray-300 dark:border-gray-600'}`}
-                          placeholder="Enter your bank name"
-                        />
+                          placeholder="Enter your bank name" />
                       </div>
                     )}
 
@@ -881,24 +1042,12 @@ const Transfer = () => {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Account Number</label>
                       <div className="relative">
                         <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                          type="text"
-                          name="recipientAccount"
-                          required
-                          value={formData.recipientAccount}
-                          onChange={handleChange}
-                          disabled={recipientVerified}
+                        <input type="text" name="recipientAccount" required value={formData.recipientAccount} onChange={handleChange} disabled={recipientVerified}
                           className={`w-full pl-10 pr-24 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-green-500' : 'border-gray-300 dark:border-gray-600'}`}
-                          placeholder="Enter 10-digit account number"
-                          maxLength="10"
-                        />
+                          placeholder="Enter 10-digit account number" maxLength="10" />
                         {!recipientVerified && (
-                          <button
-                            type="button"
-                            onClick={handleVerifyAccount}
-                            disabled={verifyingAccount || !formData.recipientAccount || !formData.recipientBank}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all"
-                          >
+                          <button type="button" onClick={handleVerifyAccount} disabled={verifyingAccount || !formData.recipientAccount || !formData.recipientBank}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all">
                             {verifyingAccount ? <FaSpinner className="animate-spin" /> : <><FaSearch className="inline mr-1" />Verify</>}
                           </button>
                         )}
@@ -907,11 +1056,8 @@ const Transfer = () => {
                     </div>
 
                     {recipientVerified && recipientName && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`p-4 rounded-xl border ${isInternalTransfer ? 'bg-green-50 dark:bg-green-900/20 border-green-200' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200'}`}
-                      >
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                        className={`p-4 rounded-xl border ${isInternalTransfer ? 'bg-green-50 dark:bg-green-900/20 border-green-200' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200'}`}>
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isInternalTransfer ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
                             {isInternalTransfer ? <FaUser /> : <FaExchangeAlt />}
@@ -937,40 +1083,22 @@ const Transfer = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount (₦)</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₦</span>
-                  <input
-                    type="number"
-                    name="amount"
-                    required
-                    min="1"
-                    max={getMaxAmount()}
-                    step="1"
-                    value={formData.amount}
-                    onChange={handleChange}
-                    className="w-full pl-8 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="0.00"
-                  />
+                  <input type="number" name="amount" required min="1" max={getMaxAmount()} step="1" value={formData.amount} onChange={handleChange}
+                    className="w-full pl-8 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="0.00" />
                 </div>
                 {formData.amount && (
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Amount: <span className="font-semibold">{formatCurrency(formData.amount)}</span>
-                  </p>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Amount: <span className="font-semibold">{formatCurrency(formData.amount)}</span></p>
                 )}
                 {(activeTab === 'transfer' || activeTab === 'withdraw') && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Available Balance: <span className="font-semibold">{formatCurrency(user?.balance || 0)}</span>
-                  </p>
+                  <p className="mt-1 text-xs text-gray-500">Available Balance: <span className="font-semibold">{formatCurrency(user?.balance || 0)}</span></p>
                 )}
               </div>
 
               {/* Quick Amount Buttons */}
               <div className="grid grid-cols-4 gap-2">
                 {quickAmounts[activeTab]?.map((quickAmount) => (
-                  <button
-                    key={quickAmount}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, amount: quickAmount.toString() })}
-                    className="py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
+                  <button key={quickAmount} type="button" onClick={() => setFormData({ ...formData, amount: quickAmount.toString() })}
+                    className="py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     ₦{quickAmount.toLocaleString()}
                   </button>
                 ))}
@@ -979,29 +1107,25 @@ const Transfer = () => {
               {/* Description Field */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (Optional)</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows="3"
+                <textarea name="description" value={formData.description} onChange={handleChange} rows="3"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white resize-none"
-                  placeholder="Add a note..."
-                  maxLength="200"
-                />
+                  placeholder="Add a note..." maxLength="200" />
                 <p className="mt-1 text-xs text-gray-500">{formData.description.length}/200 characters</p>
               </div>
 
               {/* Info Box */}
-              <div className={`p-4 rounded-xl border ${activeTab === 'deposit' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200' :
-                  activeTab === 'withdraw' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200' :
-                    'bg-purple-50 dark:bg-purple-900/20 border-purple-200'
+              <div className={`p-4 rounded-xl border ${
+                activeTab === 'deposit' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200' :
+                activeTab === 'withdraw' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200' :
+                'bg-purple-50 dark:bg-purple-900/20 border-purple-200'
+              }`}>
+                <p className={`text-sm ${
+                  activeTab === 'deposit' ? 'text-blue-800 dark:text-blue-200' :
+                  activeTab === 'withdraw' ? 'text-orange-800 dark:text-orange-200' :
+                  'text-purple-800 dark:text-purple-200'
                 }`}>
-                <p className={`text-sm ${activeTab === 'deposit' ? 'text-blue-800 dark:text-blue-200' :
-                    activeTab === 'withdraw' ? 'text-orange-800 dark:text-orange-200' :
-                      'text-purple-800 dark:text-purple-200'
-                  }`}>
                   {activeTab === 'deposit' && '💡 Demo Mode: Simulated deposit. Funds added instantly to your account.'}
-                  {activeTab === 'withdraw' && '💡 Withdrawals are processed instantly to your linked bank account.'}
+                  {activeTab === 'withdraw' && '💡 Withdrawals are processed within minutes to your selected destination.'}
                   {activeTab === 'transfer' && '💡 Vaultix transfers are FREE & INSTANT. External transfers take up to 5 minutes.'}
                 </p>
               </div>
@@ -1036,9 +1160,7 @@ const Transfer = () => {
               <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200">
                 <p className="text-yellow-800 dark:text-yellow-200 text-sm">
                   ⚠️ You haven't set a transaction PIN yet.
-                  <button type="button" onClick={() => setShowPinSetupModal(true)} className="ml-2 font-semibold underline">
-                    Set PIN Now
-                  </button>
+                  <button type="button" onClick={() => setShowPinSetupModal(true)} className="ml-2 font-semibold underline">Set PIN Now</button>
                 </p>
               </div>
             )}
