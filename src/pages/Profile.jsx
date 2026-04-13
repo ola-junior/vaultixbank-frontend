@@ -70,17 +70,28 @@ const Profile = () => {
     }
 
     setImageLoading(true);
-    const formData = new FormData();
-    formData.append('profilePicture', file);
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+    uploadData.append('upload_preset', 'vaultix_profiles');
+    uploadData.append('cloud_name', 'dlfo69li4');
 
     try {
-      const response = await api.post('/user/profile-picture', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response = await fetch('https://api.cloudinary.com/v1_1/dlfo69li4/image/upload', {
+        method: 'POST',
+        body: uploadData,
       });
-      updateUser({ ...user, profilePicture: response.data.data.profilePicture });
+
+      const data = await response.json();
+      if (!data.secure_url) {
+        throw new Error(data.error?.message || 'Upload failed');
+      }
+
+      await api.put('/user/profile', { profilePicture: data.secure_url });
+      updateUser({ ...user, profilePicture: data.secure_url });
       toast.success('Profile picture updated!');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to upload image');
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image. Please try again.');
     } finally {
       setImageLoading(false);
     }

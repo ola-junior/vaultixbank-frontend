@@ -1,16 +1,23 @@
 /**
  * Get the full URL for a profile picture
- * @param {string} profilePicture - The profile picture filename
+ * @param {string} profilePicture - The profile picture filename or URL
  * @returns {string|null} - Full URL or null for default avatar
  */
 export const getProfileImageUrl = (profilePicture) => {
-  if (!profilePicture || profilePicture === 'default-avatar.png') {
+  if (!profilePicture) return null;
+  
+  // Cloudinary URL or any http URL - return as-is
+  if (profilePicture?.startsWith('http')) {
+    return profilePicture;
+  }
+  
+  // Default avatar - return null to show initials fallback
+  if (profilePicture === 'default-avatar.png') {
     return null;
   }
   
-  // Remove '/api' from the end if present
+  // Legacy local file (fallback)
   const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  
   return `${API_BASE}/uploads/profiles/${profilePicture}`;
 };
 
