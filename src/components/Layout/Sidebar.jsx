@@ -170,10 +170,15 @@ const bottomMenuItems = [
                     src={getProfileImageUrl(user.profilePicture)}
                     alt={user?.name}
                     className="w-full h-full rounded-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
                   />
-                ) : (
-                  <span className="text-sm font-bold">{getUserInitials(user?.name)}</span>
-                )}
+                ) : null}
+                <span className={getProfileImageUrl(user?.profilePicture) ? 'hidden' : 'text-sm font-bold'}>
+                  {getUserInitials(user?.name)}
+                </span>
               </div>
               {/* Online indicator */}
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-700"></span>

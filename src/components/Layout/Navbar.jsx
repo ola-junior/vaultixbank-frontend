@@ -275,10 +275,15 @@ const Navbar = ({ onMenuClick }) => {
                       src={getProfileImageUrl(user.profilePicture)}
                       alt={user?.name}
                       className="w-full h-full rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'inline';
+                      }}
                     />
-                  ) : (
-                    <span>{getUserInitials(user?.name)}</span>
-                  )}
+                  ) : null}
+                  <span className={getProfileImageUrl(user?.profilePicture) ? 'hidden' : ''}>
+                    {getUserInitials(user?.name)}
+                  </span>
                 </div>
                 <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">
                   {user?.name?.split(' ')[0] || 'User'}

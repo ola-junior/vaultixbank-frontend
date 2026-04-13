@@ -129,12 +129,15 @@ const Profile = () => {
                     src={getProfileImageUrl(user.profilePicture)}
                     alt={userName}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
                   />
-                ) : (
-                  <span className="text-4xl font-bold text-indigo-500 dark:text-indigo-400">
-                    {getUserInitials(userName)}
-                  </span>
-                )}
+                ) : null}
+                <span className={`text-4xl font-bold text-indigo-600 dark:text-indigo-300 ${getProfileImageUrl(user?.profilePicture) ? 'hidden' : ''}`}>
+                  {getUserInitials(userName)}
+                </span>
               </div>
               <label className={`absolute bottom-0 right-0 p-2 bg-indigo-600 rounded-full cursor-pointer hover:bg-indigo-700 transition-colors shadow-lg ${imageLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 {imageLoading ? (

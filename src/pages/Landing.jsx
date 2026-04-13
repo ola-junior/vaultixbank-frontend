@@ -298,10 +298,15 @@ const Landing = () => {
                             src={getProfileImageUrl(user.profilePicture)}
                             alt={user.name}
                             className="w-full h-full rounded-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
                           />
-                        ) : (
-                          <span className="text-base">{getUserInitials(user?.name)}</span>
-                        )}
+                        ) : null}
+                        <span className={getProfileImageUrl(user?.profilePicture) ? 'hidden' : 'text-base'}>
+                          {getUserInitials(user?.name)}
+                        </span>
                       </div>
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {user.name?.split(' ')[0] || 'User'}
