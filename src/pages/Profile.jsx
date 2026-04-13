@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -11,19 +11,24 @@ import {
   FaSave,
   FaWallet,
   FaCheckCircle,
-  FaUserCircle,
   FaEdit,
   FaTimes,
-  FaCopy
+  FaCopy,
+  FaShieldAlt,
+  FaKey,
+  FaUpload
 } from 'react-icons/fa';
 import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     phoneNumber: user?.phoneNumber || '',
@@ -31,19 +36,17 @@ const Profile = () => {
   });
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const response = await api.put('/user/profile', formData);
-      updateUser(response.data.data);
+      const updated = { ...user, ...response.data.data };
+      updateUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
       toast.success('Profile updated successfully!');
       setIsEditing(false);
     } catch (error) {
@@ -57,40 +60,63 @@ const Profile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image size should be less than 5MB');
       return;
     }
-
-    // Check file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
     }
 
+    // Show local preview immediately
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl(localPreview);
     setImageLoading(true);
-    const uploadData = new FormData();
-    uploadData.append('file', file);
-    uploadData.append('upload_preset', 'vaultix_profiles');
-    uploadData.append('cloud_name', 'dlfo69li4');
 
     try {
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      uploadData.append('upload_preset', 'vaultix_profiles');
+      uploadData.append('cloud_name', 'dlfo69li4');
+
       const response = await fetch('https://api.cloudinary.com/v1_1/dlfo69li4/image/upload', {
         method: 'POST',
         body: uploadData,
       });
 
       const data = await response.json();
-      if (!data.secure_url) {
-        throw new Error(data.error?.message || 'Upload failed');
-      }
+      if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
 
+      // Save to backend
       await api.put('/user/profile', { profilePicture: data.secure_url });
-      updateUser({ ...user, profilePicture: data.secure_url });
+
+      // ✅ Force update user context + localStorage
+      const updatedUser = {
+        ...user,
+        profilePicture: data.secure_url,
+        _profileUpdated: Date.now(),
+      };
+      updateUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setPreviewUrl(null); // clear local preview — use Cloudinary URL now
+
       toast.success('Profile picture updated!');
+
+      // Refresh from server to confirm
+      setTimeout(async () => {
+        try {
+          const meRes = await api.get('/auth/me');
+          if (meRes.data.success) {
+            updateUser(meRes.data.user);
+            localStorage.setItem('user', JSON.stringify(meRes.data.user));
+          }
+        } catch (_) {}
+      }, 800);
+
     } catch (error) {
       console.error('Upload error:', error);
+      setPreviewUrl(null);
       toast.error('Failed to upload image. Please try again.');
     } finally {
       setImageLoading(false);
@@ -106,251 +132,290 @@ const Profile = () => {
     });
   };
 
-  // Copy account number to clipboard
   const copyAccountNumber = async () => {
     if (!user?.accountNumber) return;
-    
     try {
       await navigator.clipboard.writeText(user.accountNumber);
-      toast.success('Account number copied to clipboard!');
-    } catch (error) {
-      console.error('Failed to copy account number:', error);
-      toast.error('Failed to copy account number');
+      toast.success('Account number copied!');
+    } catch {
+      toast.error('Failed to copy');
     }
   };
 
-  // Safe user data
   const userBalance = user?.balance ?? 0;
   const userAccountNumber = user?.accountNumber || 'N/A';
   const userEmail = user?.email || 'N/A';
   const userName = user?.name || 'User';
   const userCreatedAt = user?.createdAt || null;
 
+  // Determine which image to show: local preview > Cloudinary > initials
+  const displayImageUrl = previewUrl || getProfileImageUrl(user?.profilePicture);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-0">
-      {/* Profile Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-        <div className="h-32 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600"></div>
+      
+      {/* Profile Header Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"
+      >
+        {/* Banner */}
+        <div className="h-36 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 relative">
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-4 left-10 w-20 h-20 bg-white rounded-full blur-2xl" />
+            <div className="absolute bottom-2 right-20 w-16 h-16 bg-white rounded-full blur-xl" />
+          </div>
+        </div>
+
         <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row items-center -mt-12 sm:-mt-16">
-            <div className="relative">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-indigo-100 to-blue-100 dark:from-indigo-900 dark:to-blue-900 flex items-center justify-center overflow-hidden shadow-lg">
-                {getProfileImageUrl(user?.profilePicture) ? (
-                  <img 
-                    src={getProfileImageUrl(user.profilePicture)}
+          <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-14 sm:-mt-16 gap-4">
+            {/* Avatar with upload */}
+            <div className="relative flex-shrink-0">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-indigo-100 to-blue-100 dark:from-indigo-900 dark:to-blue-900 flex items-center justify-center overflow-hidden shadow-xl">
+                {displayImageUrl ? (
+                  <img
+                    key={displayImageUrl}
+                    src={displayImageUrl}
                     alt={userName}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
+                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
                     }}
                   />
                 ) : null}
-                <span className={`text-4xl font-bold text-indigo-600 dark:text-indigo-300 ${getProfileImageUrl(user?.profilePicture) ? 'hidden' : ''}`}>
+                <span
+                  className={`text-4xl font-bold text-indigo-600 dark:text-indigo-300 items-center justify-center ${displayImageUrl ? 'hidden' : 'flex'}`}
+                >
                   {getUserInitials(userName)}
                 </span>
               </div>
-              <label className={`absolute bottom-0 right-0 p-2 bg-indigo-600 rounded-full cursor-pointer hover:bg-indigo-700 transition-colors shadow-lg ${imageLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+
+              {/* Upload overlay button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={imageLoading}
+                className="absolute bottom-1 right-1 w-9 h-9 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center shadow-lg transition-all disabled:opacity-60 border-2 border-white"
+                title="Change photo"
+              >
                 {imageLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <FaCamera className="text-white text-sm" />
+                  <FaCamera className="text-white text-xs" />
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={imageLoading}
-                  className="hidden"
-                />
-              </label>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={imageLoading}
+                className="hidden"
+              />
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {userName}
-              </h1>
-              <div className="flex items-center justify-center sm:justify-start">
-                <p className="text-gray-600 dark:text-gray-400 font-mono mr-2">
-                  Account: {userAccountNumber}
+
+            {/* User info */}
+            <div className="flex-1 text-center sm:text-left sm:pb-2">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{userName}</h1>
+              <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
+                <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">
+                  #{userAccountNumber}
                 </p>
-                {user?.accountNumber && userAccountNumber !== 'N/A' && (
+                {user?.accountNumber && (
                   <button
                     onClick={copyAccountNumber}
-                    className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                    className="p-1 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                     title="Copy account number"
                   >
                     <FaCopy className="text-sm" />
                   </button>
                 )}
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Member since {formatDate(userCreatedAt)}
               </p>
             </div>
+
+            {/* Edit button */}
+            <div className="sm:pb-2">
+              {!isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors text-sm font-medium shadow-md"
+                >
+                  <FaEdit /> Edit Profile
+                </button>
+              ) : (
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+                >
+                  <FaTimes /> Cancel
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Account Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-6 shadow-lg border border-indigo-100 dark:border-indigo-800">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
-              <FaWallet className="text-indigo-600 dark:text-indigo-400" />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
+        {[
+          {
+            icon: FaWallet,
+            label: 'Available Balance',
+            value: formatCurrency(userBalance),
+            bg: 'from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20',
+            border: 'border-indigo-100 dark:border-indigo-800',
+            iconBg: 'bg-indigo-100 dark:bg-indigo-900/50',
+            iconColor: 'text-indigo-600 dark:text-indigo-400',
+            valueColor: 'text-gray-900 dark:text-white',
+            isLarge: true,
+          },
+          {
+            icon: FaCheckCircle,
+            label: 'Account Status',
+            value: 'Active',
+            valueExtra: true,
+            bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+            border: 'border-green-100 dark:border-green-800',
+            iconBg: 'bg-green-100 dark:bg-green-900/50',
+            iconColor: 'text-green-600 dark:text-green-400',
+            valueColor: 'text-green-600 dark:text-green-400',
+          },
+          {
+            icon: FaUser,
+            label: 'Account Type',
+            value: 'Premium Savings',
+            bg: 'from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20',
+            border: 'border-purple-100 dark:border-purple-800',
+            iconBg: 'bg-purple-100 dark:bg-purple-900/50',
+            iconColor: 'text-purple-600 dark:text-purple-400',
+            valueColor: 'text-gray-900 dark:text-white',
+          },
+        ].map((card, i) => (
+          <div
+            key={i}
+            className={`bg-gradient-to-br ${card.bg} rounded-xl p-5 shadow-md border ${card.border}`}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`p-2 ${card.iconBg} rounded-lg`}>
+                <card.icon className={card.iconColor} />
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Available Balance</p>
+            <p className={`font-bold ${card.isLarge ? 'text-2xl' : 'text-xl'} ${card.valueColor} flex items-center gap-2`}>
+              {card.valueExtra && (
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              )}
+              {card.value}
+            </p>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {formatCurrency(userBalance)}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 shadow-lg border border-green-100 dark:border-green-800">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
-              <FaCheckCircle className="text-green-600 dark:text-green-400" />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Account Status</p>
-          </div>
-          <p className="text-xl font-semibold text-green-600 dark:text-green-400 flex items-center">
-            <span className="inline-block w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full mr-2 animate-pulse"></span>
-            Active
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 shadow-lg border border-purple-100 dark:border-purple-800">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-              <FaUser className="text-purple-600 dark:text-purple-400" />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Account Type</p>
-          </div>
-          <p className="text-xl font-semibold text-gray-900 dark:text-white">
-            Premium Savings
-          </p>
-        </div>
-      </div>
+        ))}
+      </motion.div>
 
-      {/* Profile Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Personal Information
-          </h2>
-          {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-            >
-              <FaEdit />
-              Edit Profile
-            </button>
-          ) : (
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
-            >
-              <FaTimes />
-              Cancel
-            </button>
-          )}
-        </div>
+      {/* Personal Info Form */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6"
+      >
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Personal Information</h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Full Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaUser className="h-5 w-5 text-gray-400" />
-                </div>
+                <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:cursor-not-allowed transition-colors"
                   placeholder="Your full name"
                 />
               </div>
             </div>
 
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
-              </label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaEnvelope className="h-5 w-5 text-gray-400" />
-                </div>
+                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                 <input
                   type="email"
                   value={userEmail}
                   disabled
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Email cannot be changed
-              </p>
+              <p className="mt-1 text-xs text-gray-400">Email cannot be changed</p>
             </div>
 
+            {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Phone Number
-              </label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaPhone className="h-5 w-5 text-gray-400" />
-                </div>
+                <FaPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                 <input
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:cursor-not-allowed transition-colors"
                   placeholder="08012345678"
                 />
               </div>
             </div>
 
+            {/* Account Number */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Account Number
-              </label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Number</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-400 text-lg">#</span>
-                </div>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">#</span>
                 <input
                   type="text"
                   value={userAccountNumber}
                   disabled
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-mono cursor-not-allowed"
+                  className="w-full pl-8 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-mono cursor-not-allowed"
                 />
+                <button
+                  type="button"
+                  onClick={copyAccountNumber}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
+                >
+                  <FaCopy className="text-sm" />
+                </button>
               </div>
             </div>
           </div>
 
+          {/* Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
             <div className="relative">
-              <div className="absolute top-3 left-0 pl-3 pointer-events-none">
-                <FaMapMarkerAlt className="h-5 w-5 text-gray-400" />
-              </div>
+              <FaMapMarkerAlt className="absolute left-3 top-3.5 text-gray-400 text-sm" />
               <textarea
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
                 disabled={!isEditing}
                 rows="3"
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed resize-none transition-colors"
+                className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:cursor-not-allowed resize-none transition-colors"
                 placeholder="Your address"
-              ></textarea>
+              />
             </div>
           </div>
 
@@ -359,51 +424,64 @@ const Profile = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl font-semibold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Saving...
                   </>
                 ) : (
-                  <>
-                    <FaSave />
-                    Save Changes
-                  </>
+                  <><FaSave /> Save Changes</>
                 )}
               </button>
             </div>
           )}
         </form>
-      </div>
+      </motion.div>
 
       {/* Security Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          Security Settings
-        </h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Two-Factor Authentication</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Add an extra layer of security</p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6"
+      >
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-5">Security Settings</h2>
+        <div className="space-y-3">
+          {[
+            {
+              icon: FaShieldAlt,
+              title: 'Two-Factor Authentication',
+              desc: 'Add an extra layer of security to your account',
+              btnLabel: 'Enable',
+              btnStyle: 'border border-indigo-600 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20',
+            },
+            {
+              icon: FaKey,
+              title: 'Change Password',
+              desc: 'Update your password regularly for better security',
+              btnLabel: 'Update',
+              btnStyle: 'border border-indigo-600 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20',
+            },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+                  <item.icon className="text-indigo-600 dark:text-indigo-400 text-sm" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">{item.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
+                </div>
+              </div>
+              <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${item.btnStyle}`}>
+                {item.btnLabel}
+              </button>
             </div>
-            <button className="px-4 py-2 border border-indigo-600 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-              Enable
-            </button>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Change Password</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Update your password regularly</p>
-            </div>
-            <button className="px-4 py-2 border border-indigo-600 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-              Update
-            </button>
-          </div>
+          ))}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

@@ -3,43 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProfileImageUrl, getUserInitials } from '../utils/imageUrl';
 import { 
-  FaShieldAlt, 
-  FaBolt, 
-  FaGlobe, 
-  FaChartLine, 
-  FaCreditCard,
-  FaArrowRight,
-  FaStar,
-  FaUser,
-  FaSignOutAlt,
-  FaCog,
-  FaTachometerAlt,
-  FaCheckCircle,
-  FaPlay,
-  FaApple,
-  FaGooglePlay,
-  FaTwitter,
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaYoutube,
-  FaQuoteRight,
-  FaMoneyBillWave,
-  FaMobileAlt,
-  FaChevronLeft,
-  FaChevronRight,
-  FaLock,
-  FaUsers,
-  FaGlobeAmericas,
-  FaShieldVirus,
-  FaFingerprint,
-  FaChartPie,
-  FaSun,
-  FaMoon,
-  FaBars,
-  FaTimes
+  FaShieldAlt, FaBolt, FaChartLine, FaCreditCard,
+  FaArrowRight, FaStar, FaUser, FaSignOutAlt, FaCog,
+  FaTachometerAlt, FaCheckCircle, FaApple, FaGooglePlay,
+  FaTwitter, FaFacebook, FaInstagram, FaLinkedin,
+  FaQuoteRight, FaMoneyBillWave, FaMobileAlt,
+  FaChevronLeft, FaChevronRight, FaLock, FaUsers,
+  FaGlobeAmericas, FaShieldVirus, FaFingerprint,
+  FaChartPie, FaSun, FaMoon, FaBars, FaTimes,
+  FaPlay, FaCheck, FaArrowUp
 } from 'react-icons/fa';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const Landing = () => {
@@ -48,16 +22,17 @@ const Landing = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Refs for animations
   const heroRef = useRef(null);
   const featuresRef = useRef(null);
   const statsRef = useRef(null);
   const testimonialsRef = useRef(null);
   const ctaRef = useRef(null);
   const securityRef = useRef(null);
+  const pricingRef = useRef(null);
 
   const heroInView = useInView(heroRef, { once: true });
   const featuresInView = useInView(featuresRef, { once: true });
@@ -65,43 +40,34 @@ const Landing = () => {
   const testimonialsInView = useInView(testimonialsRef, { once: true });
   const ctaInView = useInView(ctaRef, { once: true });
   const securityInView = useInView(securityRef, { once: true });
+  const pricingInView = useInView(pricingRef, { once: true });
 
-  // Initialize dark mode from localStorage or system preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
     }
   }, []);
-
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      const newMode = !prev;
-      if (newMode) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-      }
-      return newMode;
-    });
-  };
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
+      setShowBackToTop(window.scrollY > 500);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const next = !prev;
+      document.documentElement.classList.toggle('dark', next);
+      localStorage.setItem('theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
 
   const handleLogout = () => {
     logout();
@@ -110,140 +76,64 @@ const Landing = () => {
   };
 
   const features = [
-    {
-      icon: FaBolt,
-      title: 'Instant Transfers',
-      description: 'Send and receive money instantly to any bank account in Nigeria with zero hidden fees.',
-      iconBg: 'from-blue-500 to-cyan-500',
-    },
-    {
-      icon: FaShieldAlt,
-      title: 'Bank-Grade Security',
-      description: 'Your money is protected with 256-bit encryption, biometric login, and real-time fraud detection.',
-      iconBg: 'from-indigo-500 to-purple-500',
-    },
-    {
-      icon: FaChartPie,
-      title: 'Smart Analytics',
-      description: 'Track your spending habits with AI-powered insights and personalized financial recommendations.',
-      iconBg: 'from-pink-500 to-rose-500',
-    },
-    {
-      icon: FaGlobeAmericas,
-      title: 'Global Access',
-      description: 'Bank from anywhere in the world with our secure mobile app and web platform.',
-      iconBg: 'from-emerald-500 to-teal-500',
-    },
-    {
-      icon: FaMoneyBillWave,
-      title: 'High-Yield Savings',
-      description: 'Earn up to 15% annual interest on your savings with our flexible savings plans.',
-      iconBg: 'from-amber-500 to-orange-500',
-    },
-    {
-      icon: FaMobileAlt,
-      title: 'Virtual Cards',
-      description: 'Create virtual dollar and naira cards for secure online shopping and subscriptions.',
-      iconBg: 'from-purple-500 to-violet-500',
-    },
+    { icon: FaBolt, title: 'Instant Transfers', description: 'Send and receive money instantly to any Nigerian bank with zero hidden fees and real-time confirmation.', color: 'from-blue-500 to-cyan-500', light: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-100 dark:border-blue-800' },
+    { icon: FaShieldAlt, title: 'Bank-Grade Security', description: 'Your money is protected with 256-bit encryption, biometric login, and AI-powered fraud detection.', color: 'from-indigo-500 to-purple-500', light: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-100 dark:border-indigo-800' },
+    { icon: FaChartPie, title: 'Smart Analytics', description: 'Track spending habits with AI-powered insights and personalized financial recommendations.', color: 'from-pink-500 to-rose-500', light: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-100 dark:border-pink-800' },
+    { icon: FaGlobeAmericas, title: 'Global Access', description: 'Bank from anywhere in the world with our secure mobile app and web platform, 24/7.', color: 'from-emerald-500 to-teal-500', light: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-100 dark:border-emerald-800' },
+    { icon: FaMoneyBillWave, title: 'High-Yield Savings', description: 'Earn up to 15% annual interest on your savings with our flexible and transparent savings plans.', color: 'from-amber-500 to-orange-500', light: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-100 dark:border-amber-800' },
+    { icon: FaMobileAlt, title: 'Virtual Cards', description: 'Create virtual dollar and naira cards instantly for secure online shopping and subscriptions.', color: 'from-purple-500 to-violet-500', light: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-100 dark:border-purple-800' },
   ];
 
   const stats = [
-    { value: '2.5M+', label: 'Happy Customers', icon: FaUsers },
-    { value: '₦150B+', label: 'Transactions', icon: FaChartLine },
-    { value: '99.9%', label: 'Uptime', icon: FaShieldAlt },
-    { value: '15%', label: 'Interest Rate', icon: FaMoneyBillWave },
+    { value: '2.5M+', label: 'Happy Customers', sub: 'Across Nigeria', icon: FaUsers },
+    { value: '₦150B+', label: 'Transactions', sub: 'Processed safely', icon: FaChartLine },
+    { value: '99.9%', label: 'Uptime', sub: 'Always available', icon: FaShieldAlt },
+    { value: '15%', label: 'Interest Rate', sub: 'Annual savings yield', icon: FaMoneyBillWave },
   ];
 
   const testimonials = [
-    {
-      name: 'Sarah Johnson',
-      role: 'Business Owner',
-      content: 'Vaultix has completely transformed how I manage my business finances. The instant transfers are a game-changer!',
-      rating: 5,
-      image: 'https://i.pravatar.cc/150?img=1',
-      verified: true,
-    },
-    {
-      name: 'Michael Okonkwo',
-      role: 'Software Engineer',
-      content: 'The security features give me peace of mind. I can send money knowing my funds are 100% protected.',
-      rating: 5,
-      image: 'https://i.pravatar.cc/150?img=2',
-      verified: true,
-    },
-    {
-      name: 'Amina Bello',
-      role: 'Student',
-      content: 'I love the savings feature! I\'ve been able to save more money in 3 months than I did all of last year.',
-      rating: 5,
-      image: 'https://i.pravatar.cc/150?img=3',
-      verified: true,
-    },
+    { name: 'Sarah Johnson', role: 'Business Owner, Lagos', content: 'Vaultix has completely transformed how I manage my business finances. The instant transfers save me hours every week and the analytics help me understand my cash flow like never before.', rating: 5, image: 'https://i.pravatar.cc/150?img=1' },
+    { name: 'Michael Okonkwo', role: 'Software Engineer, Abuja', content: 'The security features are outstanding. I can send large amounts knowing my funds are protected. The biometric login is seamless and the 24/7 support is incredibly responsive.', rating: 5, image: 'https://i.pravatar.cc/150?img=2' },
+    { name: 'Amina Bello', role: 'Student, Kano', content: 'I\'ve saved more in 3 months with Vaultix than I did all of last year. The 15% interest rate is real, and the savings tracker keeps me motivated to hit my goals.', rating: 5, image: 'https://i.pravatar.cc/150?img=3' },
+    { name: 'Chidi Nwosu', role: 'Entrepreneur, Port Harcourt', content: 'Opening a business account was completely paperless and took less than 10 minutes. The team payroll features have made managing my 30-person team so much simpler.', rating: 5, image: 'https://i.pravatar.cc/150?img=4' },
   ];
 
   const securityFeatures = [
-    { icon: FaShieldVirus, title: 'Fraud Detection AI', description: 'Real-time monitoring' },
-    { icon: FaFingerprint, title: 'Biometric Login', description: 'Face ID & Touch ID' },
-    { icon: FaLock, title: '256-bit Encryption', description: 'Military-grade security' },
-    { icon: FaShieldAlt, title: 'Multi-Signature', description: 'Dual authorization' },
+    { icon: FaShieldVirus, title: 'Fraud Detection AI', description: 'Real-time monitoring on every transaction' },
+    { icon: FaFingerprint, title: 'Biometric Login', description: 'Face ID & Touch ID support' },
+    { icon: FaLock, title: '256-bit Encryption', description: 'Military-grade data protection' },
+    { icon: FaShieldAlt, title: 'Multi-Signature', description: 'Dual authorization on large transfers' },
   ];
 
-  const partners = [
-    { name: 'Mastercard', logo: '💳' },
-    { name: 'Visa', logo: '💳' },
-    { name: 'Verve', logo: '💳' },
-    { name: 'CBN', logo: '🏦' },
-    { name: 'NDIC', logo: '🛡️' },
+  const plans = [
+    { name: 'Personal', price: 'Free', desc: 'For individuals getting started', features: ['Instant transfers', 'Virtual debit card', 'Basic analytics', '5% savings rate', '24/7 support'], cta: 'Open Free Account', highlight: false },
+    { name: 'Premium', price: '₦2,500/mo', desc: 'For power users and families', features: ['Everything in Personal', 'Up to 15% savings rate', 'Smart budgeting tools', 'Priority support', 'Multiple sub-accounts', 'International transfers'], cta: 'Start Premium', highlight: true },
+    { name: 'Business', price: '₦9,999/mo', desc: 'For growing businesses', features: ['Everything in Premium', 'Unlimited team members', 'Payroll management', 'Business analytics', 'API access', 'Dedicated account manager'], cta: 'Go Business', highlight: false },
   ];
 
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-  };
-
-  const staggerChildren = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const handleDemoClick = () => {
-    toast.success('Demo video coming soon!');
-  };
-
-  const handleAppStoreClick = () => {
-    toast.success('App Store link coming soon!');
-  };
-
-  const handleGooglePlayClick = () => {
-    toast.success('Google Play link coming soon!');
-  };
-
-  const nextTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-  };
-
-  const prevTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
+  const fadeInUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
+  const staggerChildren = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } };
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+      setCurrentTestimonial(prev => (prev + 1) % testimonials.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [testimonials.length]);
+  }, []);
+
+  const profileImageUrl = getProfileImageUrl(user?.profilePicture);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 overflow-x-hidden">
-      {/* Navigation */}
-      <motion.nav 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
+
+      {/* ── NAVBAR ── */}
+      <motion.nav
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4 }}
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl' 
+          isScrolled
+            ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-lg border-b border-gray-200/50 dark:border-gray-800/50'
             : 'bg-transparent'
         }`}
       >
@@ -252,608 +142,507 @@ const Landing = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center group">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                <div className="relative w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-300">
-                  <FaCreditCard className="text-white text-lg md:text-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity" />
+                <div className="relative w-10 h-10 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-md">
+                  <FaCreditCard className="text-white text-lg" />
                 </div>
               </div>
-              <span className="ml-3 text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                Vaultix
-              </span>
+              <div className="ml-2.5">
+                <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">Vaultix</span>
+                <span className="block text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] -mt-1 font-semibold">Digital Bank</span>
+              </div>
             </Link>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Features</a>
-              <a href="#security" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Security</a>
-              <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Testimonials</a>
+            {/* Desktop nav links */}
+            <div className="hidden md:flex items-center space-x-1">
+              {[['#features', 'Features'], ['#security', 'Security'], ['#pricing', 'Pricing'], ['#testimonials', 'Reviews']].map(([href, label]) => (
+                <a key={href} href={href} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-medium">
+                  {label}
+                </a>
+              ))}
             </div>
 
-            {/* Right Section */}
-            <div className="flex items-center space-x-2 md:space-x-3">
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-lg text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300"
-                aria-label="Toggle dark mode"
-              >
-                {isDarkMode ? (
-                  <FaSun className="text-base md:text-lg" />
-                ) : (
-                  <FaMoon className="text-base md:text-lg" />
-                )}
+            {/* Right */}
+            <div className="flex items-center gap-2">
+              <button onClick={toggleDarkMode} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                {isDarkMode ? <FaSun className="text-amber-400 text-lg" /> : <FaMoon className="text-indigo-600 text-lg" />}
               </button>
 
-              {/* Desktop Auth Section */}
-              <div className="hidden md:flex items-center space-x-3">
+              <div className="hidden md:flex items-center gap-3">
                 {isAuthenticated && user ? (
                   <div className="relative">
-                    <button
-                      onClick={() => setShowDropdown(!showDropdown)}
-                      className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
-                        {getProfileImageUrl(user?.profilePicture) ? (
-                          <img 
-                            src={getProfileImageUrl(user.profilePicture)}
-                            alt={user.name}
-                            className="w-full h-full rounded-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
+                    <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center overflow-hidden shadow">
+                        {profileImageUrl ? (
+                          <img key={user?.profilePicture} src={profileImageUrl} alt={user.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
                         ) : null}
-                        <span className={getProfileImageUrl(user?.profilePicture) ? 'hidden' : 'text-base'}>
-                          {getUserInitials(user?.name)}
-                        </span>
+                        <span className={`text-white text-xs font-bold ${profileImageUrl ? 'hidden' : ''}`}>{getUserInitials(user?.name)}</span>
                       </div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {user.name?.split(' ')[0] || 'User'}
-                      </span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user.name?.split(' ')[0]}</span>
                     </button>
-
-                    {showDropdown && (
-                      <>
-                        <div className="fixed inset-0 z-30" onClick={() => setShowDropdown(false)} />
-                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-40 overflow-hidden">
-                          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{user.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-                          </div>
-                          
-                          <div className="py-1">
-                            {[
-                              { to: '/dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
-                              { to: '/profile', icon: FaUser, label: 'Profile' },
-                              { to: '/settings', icon: FaCog, label: 'Settings' },
-                            ].map((item) => (
-                              <Link
-                                key={item.to}
-                                to={item.to}
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                onClick={() => setShowDropdown(false)}
-                              >
-                                <item.icon className="mr-3 text-gray-400" />
-                                {item.label}
+                    <AnimatePresence>
+                      {showDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-30" onClick={() => setShowDropdown(false)} />
+                          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-40 overflow-hidden">
+                            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{user.name}</p>
+                              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            </div>
+                            {[{ to: '/dashboard', icon: FaTachometerAlt, label: 'Dashboard' }, { to: '/profile', icon: FaUser, label: 'Profile' }, { to: '/settings', icon: FaCog, label: 'Settings' }].map(item => (
+                              <Link key={item.to} to={item.to} onClick={() => setShowDropdown(false)} className="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <item.icon className="mr-3 text-gray-400 text-sm" />{item.label}
                               </Link>
                             ))}
-                          </div>
-                          
-                          <div className="border-t border-gray-200 dark:border-gray-700 py-1">
-                            <button
-                              onClick={handleLogout}
-                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            >
-                              <FaSignOutAlt className="mr-3" />
-                              Logout
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                            <div className="border-t border-gray-200 dark:border-gray-700">
+                              <button onClick={handleLogout} className="flex items-center w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                <FaSignOutAlt className="mr-3" />Logout
+                              </button>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ) : (
                   <>
-                    <Link
-                      to="/login"
-                      className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                    >
+                    <Link to="/login" className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                       Sign In
                     </Link>
-                    <Link
-                      to="/register"
-                      className="relative group"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg blur-md opacity-70 group-hover:opacity-100 transition-opacity"></div>
-                      <span className="relative inline-flex items-center px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold shadow-lg">
-                        Open Account
-                        <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                    <Link to="/register" className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl blur-md opacity-60 group-hover:opacity-90 transition-opacity" />
+                      <span className="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg">
+                        Open Account <FaArrowRight className="text-xs group-hover:translate-x-0.5 transition-transform" />
                       </span>
                     </Link>
                   </>
                 )}
               </div>
 
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                aria-label="Toggle menu"
-              >
-                {mobileMenuOpen ? (
-                  <FaTimes className="text-xl" />
-                ) : (
-                  <FaBars className="text-xl" />
-                )}
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                {mobileMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
               </button>
             </div>
           </div>
 
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700"
-            >
-              <nav className="flex flex-col space-y-2">
-                <a 
-                  href="#features" 
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Features
-                </a>
-                <a 
-                  href="#security" 
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Security
-                </a>
-                <a 
-                  href="#testimonials" 
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Testimonials
-                </a>
-                
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  {isAuthenticated && user ? (
-                    <>
-                      <div className="px-4 py-2">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{user.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+          {/* Mobile menu */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="md:hidden pb-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col gap-1 pt-3">
+                  {[['#features', 'Features'], ['#security', 'Security'], ['#pricing', 'Pricing'], ['#testimonials', 'Reviews']].map(([href, label]) => (
+                    <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-medium">{label}</a>
+                  ))}
+                  <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
+                    {isAuthenticated && user ? (
+                      <>
+                        <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm"><FaTachometerAlt className="mr-3 text-gray-400" />Dashboard</Link>
+                        <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center w-full px-4 py-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm"><FaSignOutAlt className="mr-3" />Logout</button>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-2 px-2">
+                        <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2.5 text-center text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm">Sign In</Link>
+                        <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2.5 text-center bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-semibold text-sm">Open Account</Link>
                       </div>
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <FaTachometerAlt className="mr-3 text-gray-400" />
-                        Dashboard
-                      </Link>
-                      <Link
-                        to="/profile"
-                        className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <FaUser className="mr-3 text-gray-400" />
-                        Profile
-                      </Link>
-                      <button
-                        onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-                        className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <FaSignOutAlt className="mr-3" />
-                        Logout
-                      </button>
-                    </>
-                  ) : (
-                    <div className="flex flex-col space-y-2 px-2">
-                      <Link
-                        to="/login"
-                        className="px-4 py-2 text-center text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        Sign In
-                      </Link>
-                      <Link
-                        to="/register"
-                        className="px-4 py-2 text-center bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        Open Account
-                      </Link>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </nav>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.nav>
 
-      {/* Hero Section */}
-      <section ref={heroRef} className="relative pt-24 md:pt-32 pb-16 md:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      {/* ── HERO ── */}
+      <section ref={heroRef} className="relative pt-28 md:pt-36 pb-20 md:pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden">
         {/* Background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-900/20"></div>
-          <motion.div 
-            animate={{ scale: [1, 1.2, 1], rotate: [0, 45, 0] }}
-            transition={{ duration: 20, repeat: Infinity }}
-            className="absolute -top-40 -right-40 w-96 h-96 bg-indigo-200 dark:bg-indigo-900/30 rounded-full opacity-40 blur-3xl"
-          />
-          <motion.div 
-            animate={{ scale: [1.2, 1, 1.2], rotate: [45, 0, 45] }}
-            transition={{ duration: 15, repeat: Infinity }}
-            className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-200 dark:bg-blue-900/30 rounded-full opacity-40 blur-3xl"
-          />
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-indigo-50/60 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/30" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-indigo-100/60 to-transparent dark:from-indigo-900/20 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-blue-100/40 to-transparent dark:from-blue-900/10 rounded-full blur-3xl translate-y-1/4 -translate-x-1/4" />
+
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #6366f1 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
         <div className="relative max-w-7xl mx-auto">
-          <motion.div 
-            variants={staggerChildren}
-            initial="hidden"
-            animate={heroInView ? "visible" : "hidden"}
-            className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center"
-          >
-            <motion.div variants={fadeInUp}>
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/30 dark:to-blue-900/30 backdrop-blur-sm rounded-full px-4 py-2 mb-6 md:mb-8">
+          <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+            {/* Left */}
+            <motion.div variants={staggerChildren} initial="hidden" animate={heroInView ? 'visible' : 'hidden'}>
+              <motion.div variants={fadeInUp} className="inline-flex items-center gap-2.5 bg-white dark:bg-gray-800 border border-indigo-100 dark:border-indigo-900/50 rounded-full px-4 py-2 mb-8 shadow-sm">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
                 </span>
-                <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Trusted by 2.5M+ Nigerians
-                </span>
-              </div>
-              
-              <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 leading-tight">
-                Bank Smarter,{' '}
-                <span className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  Live Better
-                </span>
-              </h1>
-              
-              <p className="text-base md:text-xl text-gray-600 dark:text-gray-400 mb-6 md:mb-8 leading-relaxed">
-                Join millions who trust Vaultix for instant transfers, high-yield savings, 
-                and smart financial management.
-              </p>
+                <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">Trusted by 2.5M+ Nigerians</span>
+                <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold rounded-full uppercase tracking-wide">CBN Licensed</span>
+              </motion.div>
 
-              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6 md:mb-8">
-                <Link to="/register" className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl md:rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
-                  <span className="relative inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl md:rounded-2xl font-semibold shadow-2xl text-base md:text-lg w-full sm:w-auto">
-                    Get Started Free
-                    <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+              <motion.h1 variants={fadeInUp} className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-[1.05] tracking-tight mb-6">
+                The future of<br />
+                <span className="relative inline-block">
+                  <span className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent">Nigerian</span>
+                </span>{' '}
+                banking
+              </motion.h1>
+
+              <motion.p variants={fadeInUp} className="text-lg md:text-xl text-gray-600 dark:text-gray-400 leading-relaxed mb-8 max-w-lg">
+                Bank smarter with instant transfers, 15% savings rates, AI-powered insights, and bank-grade security — all in one beautiful app.
+              </motion.p>
+
+              <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-3 mb-10">
+                <Link to="/register" className="relative group inline-flex">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl blur-xl opacity-60 group-hover:opacity-90 transition-opacity" />
+                  <span className="relative flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-2xl font-semibold shadow-2xl text-base w-full sm:w-auto">
+                    Get Started — It's Free
+                    <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
                   </span>
                 </Link>
-                <button 
-                  onClick={handleDemoClick}
-                  className="inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl md:rounded-2xl font-semibold border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-600 dark:hover:border-indigo-600 transition-all duration-200 shadow-lg hover:shadow-xl w-full sm:w-auto"
-                >
-                  <FaPlay className="mr-2 text-indigo-600" />
+                <button onClick={() => toast.success('Demo coming soon!')} className="flex items-center justify-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:border-indigo-400 hover:shadow-lg transition-all text-base">
+                  <div className="w-7 h-7 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center">
+                    <FaPlay className="text-indigo-600 dark:text-indigo-400 text-xs ml-0.5" />
+                  </div>
                   Watch Demo
                 </button>
-              </div>
+              </motion.div>
 
-              <div className="flex items-center gap-4 md:gap-8">
-                <div className="flex -space-x-2 md:-space-x-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <img
-                      key={i}
-                      src={`https://i.pravatar.cc/50?img=${i}`}
-                      alt=""
-                      className="w-8 h-8 md:w-12 md:h-12 rounded-full border-2 md:border-3 border-white dark:border-gray-900"
-                    />
+              {/* Social proof */}
+              <motion.div variants={fadeInUp} className="flex items-center gap-5">
+                <div className="flex -space-x-3">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <img key={i} src={`https://i.pravatar.cc/50?img=${i + 5}`} alt="" className="w-9 h-9 rounded-full border-2 border-white dark:border-gray-900 shadow-sm" />
                   ))}
                 </div>
                 <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    {[...Array(5)].map((_, i) => (
-                      <FaStar key={i} className="text-yellow-400 text-xs md:text-sm" />
-                    ))}
-                    <span className="ml-2 font-semibold text-sm md:text-base text-gray-900 dark:text-white">4.9/5</span>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => <FaStar key={i} className="text-amber-400 text-xs" />)}
+                    <span className="ml-1.5 font-bold text-gray-900 dark:text-white text-sm">4.9</span>
                   </div>
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                    From 50,000+ reviews
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">From 50,000+ verified reviews</p>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
 
-            {/* Right Content - App Mockup */}
-            <motion.div variants={fadeInUp} className="relative">
-              <div className="relative z-10">
-                <div className="bg-gradient-to-br from-gray-900 to-indigo-900 rounded-3xl p-1 shadow-2xl">
-                  <div className="bg-gradient-to-br from-indigo-600 to-blue-600 rounded-3xl p-6 md:p-8">
-                    <div className="flex items-center justify-between mb-4 md:mb-6">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-full"></div>
-                        <div>
-                          <div className="w-20 md:w-24 h-2 md:h-3 bg-white/30 rounded-full mb-1"></div>
-                          <div className="w-14 md:w-16 h-1.5 md:h-2 bg-white/20 rounded-full"></div>
-                        </div>
-                      </div>
-                      <FaCreditCard className="text-white/70 text-xl md:text-2xl" />
+            {/* Right — App mockup */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={heroInView ? { opacity: 1, x: 0 } : {}}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="relative hidden lg:block"
+            >
+              {/* Glow */}
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-3xl blur-3xl" />
+              
+              {/* Phone mockup */}
+              <div className="relative bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl border border-gray-700/50 w-[320px] mx-auto">
+                <div className="bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 rounded-[2rem] overflow-hidden">
+                  {/* Status bar */}
+                  <div className="flex items-center justify-between px-6 py-3">
+                    <span className="text-white/70 text-xs font-medium">9:41</span>
+                    <div className="w-28 h-5 bg-gray-900 rounded-full mx-auto" />
+                    <div className="flex gap-1 items-center">
+                      <div className="w-4 h-2 border border-white/50 rounded-sm"><div className="w-3/4 h-full bg-white/70 rounded-sm" /></div>
                     </div>
-                    
-                    <div className="mb-4 md:mb-6">
-                      <p className="text-white/60 text-xs md:text-sm mb-1">Available Balance</p>
-                      <p className="text-3xl md:text-4xl font-bold text-white">₦245,000.00</p>
+                  </div>
+                  
+                  {/* App content */}
+                  <div className="px-6 pb-8 pt-2 space-y-5">
+                    <div>
+                      <p className="text-white/60 text-xs mb-1">Good morning, Emeka 👋</p>
+                      <p className="text-white/50 text-xs">Your financial overview</p>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2 mb-4 md:mb-6">
-                      {['Send', 'Request', 'Pay', 'More'].map((action) => (
-                        <button key={action} className="p-2 md:p-3 bg-white/10 rounded-xl text-white text-xs md:text-sm font-medium hover:bg-white/20 transition-colors">
-                          {action}
-                        </button>
+                    {/* Balance card */}
+                    <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
+                      <p className="text-white/60 text-xs mb-1">Total Balance</p>
+                      <p className="text-white text-3xl font-bold">₦245,000</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-green-300 text-xs">↑ 12.5%</span>
+                        <span className="text-white/40 text-xs">this month</span>
+                      </div>
+                    </div>
+
+                    {/* Quick actions */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {['Send', 'Receive', 'Pay', 'More'].map(a => (
+                        <div key={a} className="bg-white/10 rounded-xl p-2.5 text-center">
+                          <div className="w-8 h-8 bg-white/20 rounded-full mx-auto mb-1.5" />
+                          <p className="text-white text-[10px] font-medium">{a}</p>
+                        </div>
                       ))}
                     </div>
 
-                    <div className="space-y-2 md:space-y-3">
-                      <div className="flex items-center justify-between p-2 md:p-3 bg-white/5 rounded-xl">
-                        <div className="flex items-center gap-2 md:gap-3">
-                          <div className="w-8 h-8 md:w-10 md:h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                            <FaArrowRight className="text-green-400 transform rotate-180 text-sm md:text-base" />
+                    {/* Transactions */}
+                    <div>
+                      <p className="text-white/60 text-xs mb-2.5">Recent Activity</p>
+                      <div className="space-y-2">
+                        {[
+                          { label: 'Salary Credit', amount: '+₦150,000', color: 'text-green-300', bg: 'bg-green-500/20', time: 'Today' },
+                          { label: 'Online Shopping', amount: '-₦25,500', color: 'text-red-300', bg: 'bg-red-500/20', time: 'Yesterday' },
+                          { label: 'Savings Interest', amount: '+₦3,125', color: 'text-blue-300', bg: 'bg-blue-500/20', time: 'Mon' },
+                        ].map((t, i) => (
+                          <div key={i} className="flex items-center gap-3 bg-white/5 rounded-xl p-2.5">
+                            <div className={`w-8 h-8 ${t.bg} rounded-full flex-shrink-0`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-xs font-medium">{t.label}</p>
+                              <p className="text-white/40 text-[10px]">{t.time}</p>
+                            </div>
+                            <span className={`text-xs font-bold ${t.color}`}>{t.amount}</span>
                           </div>
-                          <div>
-                            <p className="text-white text-xs md:text-sm font-medium">Salary Deposit</p>
-                            <p className="text-white/40 text-[10px] md:text-xs">Today, 10:30 AM</p>
-                          </div>
-                        </div>
-                        <span className="text-green-400 text-xs md:text-sm font-semibold">+₦150,000</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 md:p-3 bg-white/5 rounded-xl">
-                        <div className="flex items-center gap-2 md:gap-3">
-                          <div className="w-8 h-8 md:w-10 md:h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-                            <FaArrowRight className="text-red-400 text-sm md:text-base" />
-                          </div>
-                          <div>
-                            <p className="text-white text-xs md:text-sm font-medium">Shopping</p>
-                            <p className="text-white/40 text-[10px] md:text-xs">Yesterday</p>
-                          </div>
-                        </div>
-                        <span className="text-red-400 text-xs md:text-sm font-semibold">-₦25,500</span>
+                        ))}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Floating cards */}
+              <motion.div
+                animate={{ y: [-4, 4, -4] }}
+                transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+                className="absolute -left-12 top-20 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-3.5 border border-gray-100 dark:border-gray-700 w-44"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-7 h-7 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                    <FaCheckCircle className="text-green-600 text-xs" />
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white">Transfer Sent!</p>
+                </div>
+                <p className="text-gray-500 text-[10px]">₦50,000 → GTBank</p>
+                <p className="text-green-600 text-[10px] font-medium mt-0.5">Instant • Free</p>
+              </motion.div>
+
+              <motion.div
+                animate={{ y: [4, -4, 4] }}
+                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut', delay: 1 }}
+                className="absolute -right-8 bottom-32 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-3.5 border border-gray-100 dark:border-gray-700 w-44"
+              >
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1">Savings goal</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white mb-1.5">iPhone 16 Pro</p>
+                <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full">
+                  <div className="w-2/3 h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full" />
+                </div>
+                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 font-medium">67% reached 🎯</p>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Partners */}
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
+        {/* Trusted by */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
           animate={heroInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.4 }}
-          className="relative max-w-7xl mx-auto mt-16 md:mt-20 pt-8 md:pt-12 border-t border-gray-200 dark:border-gray-800"
+          transition={{ delay: 0.5 }}
+          className="relative max-w-7xl mx-auto mt-20 pt-10 border-t border-gray-200/70 dark:border-gray-800"
         >
-          <p className="text-center text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-6 md:mb-8">
-            Trusted by leading financial institutions
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12">
-            {partners.map((partner, index) => (
-              <div key={index} className="text-2xl md:text-3xl opacity-50 hover:opacity-100 transition-opacity">
-                {partner.logo}
-              </div>
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] font-medium mb-8">Licensed & regulated by</p>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+            {['CBN', 'NDIC', 'NIBSS', 'Mastercard', 'Verve'].map((name, i) => (
+              <div key={i} className="text-gray-400 dark:text-gray-600 font-bold text-sm md:text-base tracking-wide hover:text-gray-600 dark:hover:text-gray-400 transition-colors">{name}</div>
             ))}
           </div>
         </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" ref={featuresRef} className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
+      {/* ── FEATURES ── */}
+      <section id="features" ref={featuresRef} className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gray-50/70 dark:bg-gray-900/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
-            variants={staggerChildren}
-            initial="hidden"
-            animate={featuresInView ? "visible" : "hidden"}
-            className="text-center mb-12 md:mb-16"
-          >
-            <motion.h2 variants={fadeInUp} className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4">
-              Powerful Features for{' '}
-              <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
-                Modern Banking
-              </span>
+          <motion.div variants={staggerChildren} initial="hidden" animate={featuresInView ? 'visible' : 'hidden'} className="text-center mb-16">
+            <motion.p variants={fadeInUp} className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Everything you need</motion.p>
+            <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+              Powerful features for<br />
+              <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">modern banking</span>
             </motion.h2>
-            <motion.p variants={fadeInUp} className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Everything you need to manage your finances, all in one place
-            </motion.p>
+            <motion.p variants={fadeInUp} className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">From instant transfers to AI-powered analytics — everything in one place, designed for Nigerians.</motion.p>
           </motion.div>
 
-          <motion.div 
-            variants={staggerChildren}
-            initial="hidden"
-            animate={featuresInView ? "visible" : "hidden"}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
-          >
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={fadeInUp}
-                whileHover={{ y: -8 }}
-                className="group relative bg-white dark:bg-gray-800 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all duration-300"
+          <motion.div variants={staggerChildren} initial="hidden" animate={featuresInView ? 'visible' : 'hidden'} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((f, i) => (
+              <motion.div key={i} variants={fadeInUp} whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                className={`group relative bg-white dark:bg-gray-800/80 rounded-2xl p-7 border ${f.border} hover:shadow-xl hover:border-indigo-200 dark:hover:border-indigo-700 transition-all duration-300`}
               >
-                <div className={`w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br ${feature.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-5 md:mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon className="text-white text-xl md:text-2xl" />
+                <div className={`w-12 h-12 bg-gradient-to-br ${f.color} rounded-xl flex items-center justify-center mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <f.icon className="text-white text-lg" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 md:mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {feature.description}
-                </p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{f.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{f.description}</p>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Security Section */}
-      <section id="security" ref={securityRef} className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900">
+      {/* ── SECURITY ── */}
+      <section id="security" ref={securityRef} className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
-            variants={staggerChildren}
-            initial="hidden"
-            animate={securityInView ? "visible" : "hidden"}
-            className="text-center mb-12 md:mb-16"
-          >
-            <motion.h2 variants={fadeInUp} className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4">
-              <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
-                Bank-Grade
-              </span>{' '}
-              Security
-            </motion.h2>
-            <motion.p variants={fadeInUp} className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Your assets are protected by the most advanced security infrastructure
-            </motion.p>
-          </motion.div>
-
-          <motion.div 
-            variants={staggerChildren}
-            initial="hidden"
-            animate={securityInView ? "visible" : "hidden"}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
-          >
-            {securityFeatures.map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={fadeInUp}
-                whileHover={{ scale: 1.05 }}
-                className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 rounded-xl md:rounded-2xl p-4 md:p-6 text-center border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all duration-300"
-              >
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4 shadow-lg">
-                  <feature.icon className="text-white text-lg md:text-xl" />
-                </div>
-                <h4 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">{feature.title}</h4>
-                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">{feature.description}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section ref={statsRef} className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            variants={staggerChildren}
-            initial="hidden"
-            animate={statsInView ? "visible" : "hidden"}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
-          >
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                variants={fadeInUp}
-                className="text-center text-white"
-              >
-                <div className="inline-flex p-3 md:p-4 bg-white/10 backdrop-blur-sm rounded-xl md:rounded-2xl mb-4 md:mb-6">
-                  <stat.icon className="text-2xl md:text-3xl" />
-                </div>
-                <div className="text-4xl md:text-5xl lg:text-6xl font-bold mb-1 md:mb-2">
-                  {stat.value}
-                </div>
-                <p className="text-white/80 text-sm md:text-lg">{stat.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" ref={testimonialsRef} className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/30">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            variants={staggerChildren}
-            initial="hidden"
-            animate={testimonialsInView ? "visible" : "hidden"}
-            className="text-center mb-12 md:mb-16"
-          >
-            <motion.h2 variants={fadeInUp} className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4">
-              What Our{' '}
-              <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
-                Customers
-              </span>{' '}
-              Say
-            </motion.h2>
-            <motion.p variants={fadeInUp} className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Join millions of satisfied customers who trust Vaultix
-            </motion.p>
-          </motion.div>
-
-          <div className="relative">
-            <motion.div 
-              key={currentTestimonial}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl md:rounded-3xl p-6 md:p-12 shadow-xl max-w-4xl mx-auto"
-            >
-              <div className="flex items-center gap-1 mb-3 md:mb-4">
-                {[...Array(testimonials[currentTestimonial].rating)].map((_, i) => (
-                  <FaStar key={i} className="text-yellow-400 text-sm md:text-base" />
-                ))}
-              </div>
-              <FaQuoteRight className="text-3xl md:text-4xl text-indigo-200 dark:text-indigo-900 mb-3 md:mb-4" />
-              <p className="text-gray-600 dark:text-gray-300 text-base md:text-xl leading-relaxed mb-4 md:mb-6">
-                "{testimonials[currentTestimonial].content}"
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={securityInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.6 }}>
+              <p className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Your protection</p>
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-5 tracking-tight">
+                Security you can<br />
+                <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">actually trust</span>
+              </h2>
+              <p className="text-lg text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                We use the same security infrastructure as the world's top banks — because your money deserves nothing less.
               </p>
-              <div className="flex items-center gap-3 md:gap-4">
-                <img
-                  src={testimonials[currentTestimonial].image}
-                  alt={testimonials[currentTestimonial].name}
-                  className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-indigo-100 dark:border-indigo-900"
-                />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm md:text-base">
-                      {testimonials[currentTestimonial].name}
-                    </p>
-                    {testimonials[currentTestimonial].verified && (
-                      <FaCheckCircle className="text-blue-500 text-xs md:text-sm" />
-                    )}
+              <div className="space-y-4">
+                {['₦50M NDIC deposit insurance', 'Real-time transaction alerts', '5-minute account freeze on suspicious activity', 'Zero liability fraud protection'].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-5 h-5 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <FaCheck className="text-indigo-600 dark:text-indigo-400 text-[10px]" />
+                    </div>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm font-medium">{item}</p>
                   </div>
-                  <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
-                    {testimonials[currentTestimonial].role}
-                  </p>
-                </div>
+                ))}
               </div>
             </motion.div>
 
-            {/* Navigation Buttons */}
-            <button
-              onClick={prevTestimonial}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 md:-translate-x-4 lg:-translate-x-12 w-10 h-10 md:w-12 md:h-12 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={securityInView ? { opacity: 1, x: 0 } : {}}
+              transition={{ duration: 0.6, delay: 0.15 }}
+              className="grid grid-cols-2 gap-4"
             >
-              <FaChevronLeft className="text-gray-600 dark:text-gray-400 text-sm md:text-base" />
+              {securityFeatures.map((f, i) => (
+                <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-700 transition-colors group">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-xl flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform">
+                    <f.icon className="text-white text-lg" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{f.title}</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{f.description}</p>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── STATS ── */}
+      <section ref={statsRef} className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+        
+        <div className="relative max-w-7xl mx-auto">
+          <motion.div variants={staggerChildren} initial="hidden" animate={statsInView ? 'visible' : 'hidden'} className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+            {stats.map((s, i) => (
+              <motion.div key={i} variants={fadeInUp} className="text-center text-white">
+                <div className="inline-flex p-3 bg-white/10 backdrop-blur-sm rounded-2xl mb-4">
+                  <s.icon className="text-2xl text-white" />
+                </div>
+                <div className="text-4xl md:text-5xl font-bold mb-1">{s.value}</div>
+                <p className="text-white/90 font-semibold text-sm md:text-base">{s.label}</p>
+                <p className="text-white/50 text-xs mt-0.5">{s.sub}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── PRICING ── */}
+      <section id="pricing" ref={pricingRef} className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gray-50/70 dark:bg-gray-900/50">
+        <div className="max-w-7xl mx-auto">
+          <motion.div variants={staggerChildren} initial="hidden" animate={pricingInView ? 'visible' : 'hidden'} className="text-center mb-16">
+            <motion.p variants={fadeInUp} className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Simple pricing</motion.p>
+            <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+              Plans for <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">every stage</span>
+            </motion.h2>
+            <motion.p variants={fadeInUp} className="text-lg text-gray-500 dark:text-gray-400">Start free, upgrade when you're ready. No hidden fees, ever.</motion.p>
+          </motion.div>
+
+          <motion.div variants={staggerChildren} initial="hidden" animate={pricingInView ? 'visible' : 'hidden'} className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {plans.map((plan, i) => (
+              <motion.div key={i} variants={fadeInUp}
+                className={`relative rounded-2xl p-7 border transition-all duration-300 ${
+                  plan.highlight
+                    ? 'bg-gradient-to-br from-indigo-600 to-blue-600 border-transparent shadow-2xl shadow-indigo-200 dark:shadow-indigo-900/40 scale-105'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-700'
+                }`}
+              >
+                {plan.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">Most Popular</span>
+                  </div>
+                )}
+                <div className="mb-5">
+                  <h3 className={`text-lg font-bold mb-1 ${plan.highlight ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{plan.name}</h3>
+                  <p className={`text-xs ${plan.highlight ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>{plan.desc}</p>
+                </div>
+                <div className={`text-3xl font-bold mb-6 ${plan.highlight ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{plan.price}</div>
+                <ul className="space-y-3 mb-7">
+                  {plan.features.map((feat, j) => (
+                    <li key={j} className="flex items-start gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${plan.highlight ? 'bg-white/20' : 'bg-indigo-100 dark:bg-indigo-900/50'}`}>
+                        <FaCheck className={`text-[8px] ${plan.highlight ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
+                      </div>
+                      <span className={`text-sm ${plan.highlight ? 'text-white/90' : 'text-gray-600 dark:text-gray-400'}`}>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/register"
+                  className={`block w-full py-3 rounded-xl text-center text-sm font-semibold transition-all ${
+                    plan.highlight
+                      ? 'bg-white text-indigo-600 hover:bg-gray-50 shadow-lg'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md'
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section id="testimonials" ref={testimonialsRef} className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <motion.div variants={staggerChildren} initial="hidden" animate={testimonialsInView ? 'visible' : 'hidden'} className="text-center mb-16">
+            <motion.p variants={fadeInUp} className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Real stories</motion.p>
+            <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+              Loved by <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">millions</span>
+            </motion.h2>
+          </motion.div>
+
+          <div className="relative max-w-3xl mx-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentTestimonial}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="bg-gray-50 dark:bg-gray-800 rounded-3xl p-8 md:p-12 border border-gray-100 dark:border-gray-700"
+              >
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => <FaStar key={i} className="text-amber-400 text-sm" />)}
+                </div>
+                <FaQuoteRight className="text-3xl text-indigo-100 dark:text-indigo-900 mb-4" />
+                <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed mb-8">"{testimonials[currentTestimonial].content}"</p>
+                <div className="flex items-center gap-4">
+                  <img src={testimonials[currentTestimonial].image} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-indigo-100 dark:border-indigo-800" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-gray-900 dark:text-white">{testimonials[currentTestimonial].name}</p>
+                      <FaCheckCircle className="text-blue-500 text-sm" />
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{testimonials[currentTestimonial].role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <button onClick={() => setCurrentTestimonial(p => (p - 1 + testimonials.length) % testimonials.length)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <FaChevronLeft className="text-gray-600 dark:text-gray-400 text-sm" />
             </button>
-            <button
-              onClick={nextTestimonial}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 md:translate-x-4 lg:translate-x-12 w-10 h-10 md:w-12 md:h-12 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <FaChevronRight className="text-gray-600 dark:text-gray-400 text-sm md:text-base" />
+            <button onClick={() => setCurrentTestimonial(p => (p + 1) % testimonials.length)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-5 w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <FaChevronRight className="text-gray-600 dark:text-gray-400 text-sm" />
             </button>
 
-            {/* Dots */}
-            <div className="flex justify-center gap-2 mt-6 md:mt-8">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentTestimonial(index)}
-                  className={`h-2 md:h-2.5 rounded-full transition-all duration-300 ${
-                    currentTestimonial === index
-                      ? 'bg-indigo-600 w-6 md:w-8'
-                      : 'bg-gray-300 dark:bg-gray-600 w-2 md:w-2.5 hover:bg-gray-400 dark:hover:bg-gray-500'
-                  }`}
+            <div className="flex justify-center gap-2 mt-8">
+              {testimonials.map((_, i) => (
+                <button key={i} onClick={() => setCurrentTestimonial(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${i === currentTestimonial ? 'bg-indigo-600 w-6' : 'bg-gray-300 dark:bg-gray-600 w-2 hover:bg-gray-400'}`}
                 />
               ))}
             </div>
@@ -861,107 +650,103 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section ref={ctaRef} className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={ctaInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.6 }}
-            className="relative overflow-hidden rounded-3xl md:rounded-4xl bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 p-8 md:p-12 lg:p-16 shadow-2xl"
-          >
-            <div className="relative z-10 text-center">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6">
-                Ready to Transform Your Banking?
-              </h2>
-              <p className="text-lg md:text-xl text-white/90 mb-6 md:mb-8 max-w-2xl mx-auto">
-                Join over 2.5 million Nigerians who are already banking smarter with Vaultix.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
-                <Link
-                  to="/register"
-                  className="inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 bg-white text-indigo-600 rounded-xl md:rounded-2xl font-semibold hover:bg-gray-100 transition-all duration-200 shadow-xl text-base md:text-lg"
-                >
-                  Open Your Free Account
-                  <FaArrowRight className="ml-2" />
-                </Link>
-                <div className="flex gap-3 md:gap-4 justify-center">
-                  <button 
-                    onClick={handleAppStoreClick}
-                    className="inline-flex items-center justify-center px-5 md:px-6 py-3 md:py-4 bg-black/20 backdrop-blur-sm text-white rounded-xl md:rounded-2xl font-semibold hover:bg-black/30 transition-all duration-200 text-sm md:text-base"
-                  >
-                    <FaApple className="text-xl md:text-2xl mr-2" />
-                    App Store
-                  </button>
-                  <button 
-                    onClick={handleGooglePlayClick}
-                    className="inline-flex items-center justify-center px-5 md:px-6 py-3 md:py-4 bg-black/20 backdrop-blur-sm text-white rounded-xl md:rounded-2xl font-semibold hover:bg-black/30 transition-all duration-200 text-sm md:text-base"
-                  >
-                    <FaGooglePlay className="text-xl md:text-2xl mr-2" />
-                    Google Play
-                  </button>
-                </div>
+      {/* ── CTA ── */}
+      <section ref={ctaRef} className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gray-50/70 dark:bg-gray-900/50">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={ctaInView ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.5 }}
+          className="max-w-5xl mx-auto relative overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-blue-700 rounded-3xl p-10 md:p-16 shadow-2xl"
+        >
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+          <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+
+          <div className="relative z-10 text-center">
+            <p className="text-indigo-200 text-sm font-semibold uppercase tracking-widest mb-3">Join 2.5M+ Nigerians</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-5 tracking-tight">Ready to bank smarter?</h2>
+            <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">Open your free account in under 5 minutes. No paperwork, no queues, no hidden fees.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/register" className="flex items-center justify-center gap-2 px-8 py-4 bg-white text-indigo-700 rounded-2xl font-bold text-base hover:bg-gray-50 shadow-xl transition-all">
+                Open Free Account <FaArrowRight />
+              </Link>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => toast.success('App Store coming soon!')} className="flex items-center gap-2 px-5 py-4 bg-white/10 backdrop-blur-sm text-white rounded-2xl font-semibold text-sm hover:bg-white/20 transition-all border border-white/20">
+                  <FaApple className="text-xl" /> iOS
+                </button>
+                <button onClick={() => toast.success('Play Store coming soon!')} className="flex items-center gap-2 px-5 py-4 bg-white/10 backdrop-blur-sm text-white rounded-2xl font-semibold text-sm hover:bg-white/20 transition-all border border-white/20">
+                  <FaGooglePlay className="text-xl" /> Android
+                </button>
               </div>
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 md:py-16 px-4 sm:px-6 lg:px-8">
+      {/* ── FOOTER ── */}
+      <footer className="bg-gray-950 text-white pt-16 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-8 md:mb-12">
-            <div className="sm:col-span-2 lg:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+            <div className="sm:col-span-2">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center">
-                  <FaCreditCard className="text-white text-xl" />
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                  <FaCreditCard className="text-white text-lg" />
                 </div>
-                <span className="ml-2 text-2xl font-bold text-white">Vaultix</span>
+                <div className="ml-2.5">
+                  <span className="text-xl font-bold text-white">Vaultix</span>
+                  <span className="block text-[9px] text-gray-500 uppercase tracking-[0.2em] font-semibold -mt-0.5">Digital Bank</span>
+                </div>
               </div>
-              <p className="text-gray-400 mb-6 text-sm md:text-base">
-                Modern banking for the digital age. Secure, fast, and reliable.
-              </p>
-              <div className="flex space-x-4">
-                {[FaTwitter, FaFacebook, FaInstagram, FaLinkedin, FaYoutube].map((Icon, i) => (
-                  <a key={i} href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-colors">
-                    <Icon className="text-gray-400 hover:text-white text-lg" />
+              <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs">Modern banking for the digital age. Secure, fast, and built for Nigerians by people who understand Nigeria.</p>
+              <div className="flex gap-3">
+                {[FaTwitter, FaFacebook, FaInstagram, FaLinkedin].map((Icon, i) => (
+                  <a key={i} href="#" className="w-9 h-9 bg-gray-800 hover:bg-indigo-600 rounded-lg flex items-center justify-center transition-colors">
+                    <Icon className="text-gray-400 hover:text-white text-sm" />
                   </a>
                 ))}
               </div>
             </div>
-            
-            {['Products', 'Company', 'Resources'].map((section, i) => (
+
+            {[
+              { title: 'Products', links: ['Personal Banking', 'Business Accounts', 'Savings Plans', 'Virtual Cards', 'Investments'] },
+              { title: 'Company', links: ['About Us', 'Careers', 'Press', 'Blog', 'Partners'] },
+              { title: 'Legal', links: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'NDIC Coverage', 'Compliance'] },
+            ].map((col, i) => (
               <div key={i}>
-                <h4 className="font-semibold mb-4 text-base md:text-lg">{section}</h4>
-                <ul className="space-y-2 text-gray-400 text-sm md:text-base">
-                  {['Personal', 'Business', 'Developer', 'Pricing'].map((item, j) => (
-                    <li key={j}>
-                      <a href="#" className="hover:text-white transition-colors">{item}</a>
-                    </li>
+                <h4 className="font-bold text-sm mb-4 text-gray-200 uppercase tracking-wider">{col.title}</h4>
+                <ul className="space-y-2.5">
+                  {col.links.map((link, j) => (
+                    <li key={j}><a href="#" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">{link}</a></li>
                   ))}
                 </ul>
               </div>
             ))}
           </div>
-          
-          <div className="border-t border-gray-800 pt-6 md:pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-xs md:text-sm text-center md:text-left">
-              © 2024 Vaultix. All rights reserved.
-            </p>
-            <div className="flex space-x-4 md:space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white text-xs md:text-sm transition-colors">Privacy Policy</a>
-              <a href="#" className="text-gray-400 hover:text-white text-xs md:text-sm transition-colors">Terms of Service</a>
-              <a href="#" className="text-gray-400 hover:text-white text-xs md:text-sm transition-colors">Cookie Policy</a>
+
+          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-600 text-xs">© 2024 Vaultix Digital Bank. All rights reserved. Licensed by CBN.</p>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <p className="text-gray-500 text-xs">All systems operational</p>
             </div>
           </div>
         </div>
       </footer>
 
-      <style>{`
-        .rounded-4xl {
-          border-radius: 2rem;
-        }
-      `}</style>
+      {/* Back to top */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg flex items-center justify-center z-40 transition-colors"
+          >
+            <FaArrowUp className="text-sm" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
