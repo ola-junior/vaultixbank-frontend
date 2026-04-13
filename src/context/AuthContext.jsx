@@ -77,6 +77,19 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         const firebaseUser = result.user;
         
+        // Sync user with backend
+        try {
+          await api.post('/auth/sync-user', {
+            email: firebaseUser.email,
+            firebaseUid: firebaseUser.uid,
+            name: firebaseUser.displayName,
+            profilePicture: firebaseUser.photoURL,
+            provider: 'google'
+          });
+        } catch (syncError) {
+          console.warn('User sync warning:', syncError.message);
+        }
+        
         // Send to backend to create/get user
         const response = await api.post('/auth/oauth-login', {
           email: firebaseUser.email,
@@ -107,6 +120,19 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         const firebaseUser = result.user;
         
+        // Sync user with backend
+        try {
+          await api.post('/auth/sync-user', {
+            email: firebaseUser.email,
+            firebaseUid: firebaseUser.uid,
+            name: firebaseUser.displayName,
+            profilePicture: firebaseUser.photoURL,
+            provider: 'facebook'
+          });
+        } catch (syncError) {
+          console.warn('User sync warning:', syncError.message);
+        }
+        
         const response = await api.post('/auth/oauth-login', {
           email: firebaseUser.email,
           name: firebaseUser.displayName,
@@ -135,6 +161,19 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithTwitter();
       if (result.success) {
         const firebaseUser = result.user;
+        
+        // Sync user with backend
+        try {
+          await api.post('/auth/sync-user', {
+            email: firebaseUser.email || `${firebaseUser.displayName}@twitter.com`,
+            firebaseUid: firebaseUser.uid,
+            name: firebaseUser.displayName,
+            profilePicture: firebaseUser.photoURL,
+            provider: 'twitter'
+          });
+        } catch (syncError) {
+          console.warn('User sync warning:', syncError.message);
+        }
         
         const response = await api.post('/auth/oauth-login', {
           email: firebaseUser.email || `${firebaseUser.displayName}@twitter.com`,

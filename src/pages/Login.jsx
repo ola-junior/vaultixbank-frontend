@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import api from '../services/api';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaShieldAlt, FaChartLine, FaGlobe, FaGoogle, FaFacebook, FaTwitter, FaUser } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -35,6 +36,19 @@ const Login = () => {
         }
         setLoading(false);
         return;
+      }
+      
+      // Sync user with backend
+      try {
+        await api.post('/auth/sync-user', {
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          firebaseUid: userCredential.user.uid,
+          name: userCredential.user.displayName,
+          provider: 'local'
+        });
+      } catch (syncError) {
+        console.warn('User sync warning:', syncError.message);
       }
       
       const result = await backendLogin(formData.email, formData.password);
