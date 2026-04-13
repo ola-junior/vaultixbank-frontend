@@ -28,15 +28,45 @@ const Profile = () => {
     address: user?.address || '',
   });
 
-  // Default banner or user's custom banner
   const defaultBanner = 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1200&h=300&fit=crop';
-  
-  // Get current banner with proper initialization
+
+  // 🔥 CRITICAL FIX: Always check localStorage for the latest user data
+  const getStoredUser = () => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        return JSON.parse(storedUser);
+      }
+    } catch (error) {
+      console.error('Error parsing stored user:', error);
+    }
+    return user;
+  };
+
+  // Get current banner from multiple sources
   const getCurrentBanner = () => {
+    // 1. If there's a preview (upload in progress), show it
     if (bannerPreview) return bannerPreview;
+    
+    // 2. Check localStorage first for most up-to-date data
+    const storedUser = getStoredUser();
+    if (storedUser?.bannerImage) return storedUser.bannerImage;
+    
+    // 3. Check context user
     if (user?.bannerImage) return user.bannerImage;
+    
+    // 4. Fallback to default
     return defaultBanner;
   };
+
+  // 🔥 Force banner to persist after page reload
+  useEffect(() => {
+    const storedUser = getStoredUser();
+    if (storedUser?.bannerImage && !user?.bannerImage) {
+      // Update context with stored banner
+      updateUser(storedUser);
+    }
+  }, []);
 
   // Reset previews when user data changes
   useEffect(() => {
@@ -98,7 +128,8 @@ const Profile = () => {
 
       await api.put('/user/profile', { profilePicture: data.secure_url });
 
-      const updatedUser = { ...user, profilePicture: data.secure_url };
+      const storedUser = getStoredUser();
+      const updatedUser = { ...storedUser, profilePicture: data.secure_url };
       updateUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setPreviewUrl(null);
@@ -144,11 +175,18 @@ const Profile = () => {
       const data = await response.json();
       if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
 
+      // Save banner to backend
       await api.put('/user/profile', { bannerImage: data.secure_url });
 
-      const updatedUser = { ...user, bannerImage: data.secure_url };
+      // 🔥 CRITICAL: Get stored user and update with new banner
+      const storedUser = getStoredUser();
+      const updatedUser = { ...storedUser, bannerImage: data.secure_url };
+      
+      // Update both context and localStorage
       updateUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Clear preview
       setBannerPreview(null);
 
       toast.success('Banner updated successfully!');
@@ -205,12 +243,16 @@ const Profile = () => {
             src={displayBannerUrl}
             alt="Profile Banner"
             className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback if image fails to load
+              e.target.src = defaultBanner;
+            }}
           />
           
-          {/* FIX: Lighter gradient that doesn't cover text on any screen */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+          {/* 🔥 FIXED: Lighter gradient that won't cover text */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
           
-          {/* Banner upload button - stays visible but doesn't interfere with text */}
+          {/* Banner upload button */}
           <button
             onClick={() => bannerInputRef.current?.click()}
             disabled={bannerLoading}
@@ -234,7 +276,7 @@ const Profile = () => {
           />
         </div>
 
-        {/* Profile Info Section - FIXED LAYOUT FOR ALL SCREENS */}
+        {/* Profile Info Section */}
         <div className="px-4 sm:px-6 pb-4 sm:pb-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-12 sm:-mt-14 md:-mt-16 gap-3 sm:gap-4">
             
@@ -282,7 +324,7 @@ const Profile = () => {
               />
             </div>
 
-            {/* User info - FIXED: Better contrast and responsive spacing */}
+            {/* User info - NOW WITH PROPER CONTRAST */}
             <div className="flex-1 text-center sm:text-left sm:pb-2 mt-2 sm:mt-0">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white break-words">
                 {userName}
