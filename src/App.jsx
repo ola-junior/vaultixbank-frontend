@@ -18,6 +18,7 @@ import Settings from './pages/Settings';
 import Security from './pages/Security';
 import Notifications from './pages/Notifications';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Components
 import Navbar from './components/Layout/Navbar';
@@ -110,6 +111,7 @@ function App() {
           <Route path="/verify" element={<EmailVerification />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
           <Route path="/transactions" element={<ProtectedRoute><AppLayout><Transactions /></AppLayout></ProtectedRoute>} />

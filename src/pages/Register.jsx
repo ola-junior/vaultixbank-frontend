@@ -124,6 +124,7 @@ const Register = () => {
             <p className="text-gray-600 dark:text-gray-400 mb-4">We've sent a verification link to:</p>
             <p className="text-lg font-semibold text-indigo-600 dark:text-indigo-400 mb-6">{registeredEmail}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Please check your inbox and click the link to activate your account.</p>
+            <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-6">📧 <strong>Important:</strong> Please check your spam/junk folder if you don't see the email in your inbox.</p>
             <Link to="/login" className="block w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 shadow-lg">Go to Login</Link>
           </motion.div>
         </div>

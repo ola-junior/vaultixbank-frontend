@@ -61,6 +61,9 @@ const ForgotPassword = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Click the link in the email to reset your password. The link will expire in 1 hour.
             </p>
+            <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-6">
+              📧 <strong>Important:</strong> Please check your spam/junk folder if you don't see the email in your inbox.
+            </p>
             <Link 
               to="/login"
               className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-blue-700 shadow-lg"
