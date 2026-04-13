@@ -4,37 +4,43 @@ import toast from 'react-hot-toast';
 
 const ATMCard = ({ user }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showFullCardNumber, setShowFullCardNumber] = useState(false);
   
   // Generate card number from account number
   const generateCardNumber = () => {
     const accNum = user?.accountNumber || '0000000000000000';
-    // If account number is 16 digits, use it as card number
     if (accNum.length === 16) {
-      return `${accNum.slice(0, 4)} ${accNum.slice(4, 8)} ${accNum.slice(8, 12)} ${accNum.slice(12, 16)}`;
+      return accNum;
     }
-    // If shorter, pad with zeros or use as-is
-    const padded = accNum.padEnd(16, '0');
-    return `${padded.slice(0, 4)} ${padded.slice(4, 8)} ${padded.slice(8, 12)} ${padded.slice(12, 16)}`;
+    return accNum.padEnd(16, '0');
   };
   
-  const cardNumber = generateCardNumber();
+  const rawCardNumber = generateCardNumber();
+  
+  // Format card number for display (masked or full)
+  const formatCardDisplay = () => {
+    if (showFullCardNumber) {
+      return `${rawCardNumber.slice(0, 4)} ${rawCardNumber.slice(4, 8)} ${rawCardNumber.slice(8, 12)} ${rawCardNumber.slice(12, 16)}`;
+    }
+    // Masked: show first 4 and last 4, mask middle 8
+    return `${rawCardNumber.slice(0, 4)} •••• •••• ${rawCardNumber.slice(-4)}`;
+  };
+  
+  const cardNumber = formatCardDisplay();
   
   // Generate expiry date (3 years from now)
   const expiryDate = new Date();
   expiryDate.setFullYear(expiryDate.getFullYear() + 3);
   const expiry = `${expiryDate.getMonth() + 1}/${expiryDate.getFullYear().toString().slice(-2)}`;
 
-  // Format account number for display
+  // Format account number for display (masked)
   const formatAccountNumber = (accNum) => {
-    if (!accNum) return '•••• •••• •••• ••••';
-    const num = accNum.replace(/\s/g, ''); // Remove any existing spaces
+    if (!accNum) return '•••• •••• ••';
+    const num = accNum.replace(/\s/g, '');
     if (num.length <= 10) {
-      // For 10-digit account numbers, show masked version
       return num.slice(0, 4) + ' •••• •••• ' + num.slice(-2);
-    } else {
-      // For longer account numbers, show formatted version
-      return `${num.slice(0, 4)} ${num.slice(4, 8)} ${num.slice(8, 12)} ${num.slice(12, 16)}`;
     }
+    return `${num.slice(0, 4)} •••• •••• ${num.slice(-4)}`;
   };
 
   // Copy account number to clipboard
@@ -48,6 +54,11 @@ const ATMCard = ({ user }) => {
       console.error('Failed to copy account number:', error);
       toast.error('Failed to copy account number');
     }
+  };
+
+  // Toggle card number visibility
+  const toggleCardNumber = () => {
+    setShowFullCardNumber(!showFullCardNumber);
   };
 
   return (
@@ -90,10 +101,17 @@ const ATMCard = ({ user }) => {
             {/* Chip */}
             <div className="w-12 h-10 bg-gradient-to-br from-yellow-200 to-yellow-400 rounded-md opacity-80 shadow-inner"></div>
             
-            {/* Card Number */}
-            <div className="text-xl md:text-2xl font-mono tracking-wider">
+            {/* Card Number - Click to toggle visibility */}
+            <div 
+              className="text-xl md:text-2xl font-mono tracking-wider cursor-pointer"
+              onClick={toggleCardNumber}
+              title={showFullCardNumber ? "Click to hide card number" : "Click to reveal card number"}
+            >
               {cardNumber}
             </div>
+            <p className="text-white/60 text-[10px] -mt-2">
+              {showFullCardNumber ? "Click to hide" : "Click to reveal full number"}
+            </p>
           </div>
           
           {/* Bottom Section */}
