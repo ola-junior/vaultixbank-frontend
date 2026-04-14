@@ -6,7 +6,6 @@ import {
   FaShieldAlt, 
   FaHistory, 
   FaMobileAlt,
-  FaEnvelope,
   FaCheckCircle,
   FaExclamationTriangle,
   FaEye,
@@ -15,9 +14,8 @@ import {
   FaSignOutAlt,
   FaQrcode,
   FaKey,
-  FaGoogle,
-  FaApple,
-  FaWindows
+  FaWindows,
+  FaApple
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -73,7 +71,6 @@ const Security = () => {
       setSessions(response.data.sessions || []);
     } catch (error) {
       console.error('Error fetching sessions:', error);
-      // Fallback sessions
       setSessions([
         { 
           device: 'Windows PC • Chrome', 
@@ -160,64 +157,70 @@ const Security = () => {
     }
   };
 
- // PIN Functions
-const handlePinSetup = async (e) => {
-  e.preventDefault();
-  
-  if (hasPin) {
-    if (!pinForm.currentPin) {
-      toast.error('Current PIN is required');
-      return;
-    }
-  }
-  
-  if (pinForm.newPin !== pinForm.confirmPin) {
-    toast.error('PINs do not match');
-    return;
-  }
-  
-  if (pinForm.newPin.length !== 4 || !/^\d+$/.test(pinForm.newPin)) {
-    toast.error('PIN must be 4 digits');
-    return;
-  }
-  
-  // Prevent common weak PINs
-  const weakPins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
-  if (weakPins.includes(pinForm.newPin)) {
-    toast.error('Please choose a more secure PIN');
-    return;
-  }
-  
-  setLoading(true);
-  try {
+  // PIN Functions
+  const handlePinSetup = async (e) => {
+    e.preventDefault();
+    
     if (hasPin) {
-      // Change existing PIN - uses PUT
-      await api.put('/user/change-pin', {
-        currentPin: pinForm.currentPin,
-        newPin: pinForm.newPin,
-        confirmNewPin: pinForm.confirmPin
-      });
-      toast.success('PIN changed successfully!');
-    } else {
-      // Set new PIN - uses POST
-      await api.post('/user/set-pin', {
-        pin: pinForm.newPin,
-        confirmPin: pinForm.confirmPin
-      });
-      toast.success('PIN set successfully!');
+      if (!pinForm.currentPin) {
+        toast.error('Current PIN is required');
+        return;
+      }
     }
     
-    setHasPin(true);
-    setShowPinModal(false);
-    setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
-    await checkPinStatus(); // Refresh PIN status
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Failed to update PIN');
-    console.error('PIN error:', error.response?.data);
-  } finally {
-    setLoading(false);
-  }
-};
+    if (pinForm.newPin !== pinForm.confirmPin) {
+      toast.error('PINs do not match');
+      return;
+    }
+    
+    if (pinForm.newPin.length !== 4 || !/^\d+$/.test(pinForm.newPin)) {
+      toast.error('PIN must be 4 digits');
+      return;
+    }
+    
+    const weakPins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
+    if (weakPins.includes(pinForm.newPin)) {
+      toast.error('Please choose a more secure PIN');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      if (hasPin) {
+        await api.put('/user/change-pin', {
+          currentPin: pinForm.currentPin,
+          newPin: pinForm.newPin,
+          confirmNewPin: pinForm.confirmPin
+        });
+        toast.success('PIN changed successfully!');
+      } else {
+        await api.post('/user/set-pin', {
+          pin: pinForm.newPin,
+          confirmPin: pinForm.confirmPin
+        });
+        toast.success('PIN set successfully!');
+      }
+      
+      setHasPin(true);
+      setShowPinModal(false);
+      setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
+      await checkPinStatus();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update PIN');
+      console.error('PIN error:', error.response?.data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Password Functions
+  const handlePasswordChange = (e) => {
+    setPasswordForm({
+      ...passwordForm,
+      [e.target.name]: e.target.value
+    });
+  };
+
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
@@ -276,7 +279,7 @@ const handlePinSetup = async (e) => {
     if (twoFactorEnabled) score += 25;
     if (user?.isEmailVerified) score += 25;
     if (user?.phoneNumber) score += 15;
-    if (passwordForm.newPassword || user?.passwordUpdatedAt) score += 10;
+    if (user?.passwordUpdatedAt) score += 10;
     return Math.min(score, 100);
   };
 
