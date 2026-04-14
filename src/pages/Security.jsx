@@ -160,54 +160,64 @@ const Security = () => {
     }
   };
 
-  // PIN Functions
-  const handlePinSetup = async (e) => {
-    e.preventDefault();
-    
+ // PIN Functions
+const handlePinSetup = async (e) => {
+  e.preventDefault();
+  
+  if (hasPin) {
+    if (!pinForm.currentPin) {
+      toast.error('Current PIN is required');
+      return;
+    }
+  }
+  
+  if (pinForm.newPin !== pinForm.confirmPin) {
+    toast.error('PINs do not match');
+    return;
+  }
+  
+  if (pinForm.newPin.length !== 4 || !/^\d+$/.test(pinForm.newPin)) {
+    toast.error('PIN must be 4 digits');
+    return;
+  }
+  
+  // Prevent common weak PINs
+  const weakPins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
+  if (weakPins.includes(pinForm.newPin)) {
+    toast.error('Please choose a more secure PIN');
+    return;
+  }
+  
+  setLoading(true);
+  try {
     if (hasPin) {
-      if (!pinForm.currentPin) {
-        toast.error('Current PIN is required');
-        return;
-      }
-    }
-    
-    if (pinForm.newPin !== pinForm.confirmPin) {
-      toast.error('PINs do not match');
-      return;
-    }
-    
-    if (pinForm.newPin.length !== 4 || !/^\d+$/.test(pinForm.newPin)) {
-      toast.error('PIN must be 4 digits');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const endpoint = hasPin ? '/user/change-pin' : '/user/set-pin';
-      await api.post(endpoint, {
+      // Change existing PIN - uses PUT
+      await api.put('/user/change-pin', {
         currentPin: pinForm.currentPin,
-        newPin: pinForm.newPin
+        newPin: pinForm.newPin,
+        confirmNewPin: pinForm.confirmPin
       });
-      
-      toast.success(hasPin ? 'PIN changed successfully!' : 'PIN set successfully!');
-      setHasPin(true);
-      setShowPinModal(false);
-      setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update PIN');
-    } finally {
-      setLoading(false);
+      toast.success('PIN changed successfully!');
+    } else {
+      // Set new PIN - uses POST
+      await api.post('/user/set-pin', {
+        pin: pinForm.newPin,
+        confirmPin: pinForm.confirmPin
+      });
+      toast.success('PIN set successfully!');
     }
-  };
-
-  // Password Functions
-  const handlePasswordChange = (e) => {
-    setPasswordForm({
-      ...passwordForm,
-      [e.target.name]: e.target.value
-    });
-  };
-
+    
+    setHasPin(true);
+    setShowPinModal(false);
+    setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
+    await checkPinStatus(); // Refresh PIN status
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Failed to update PIN');
+    console.error('PIN error:', error.response?.data);
+  } finally {
+    setLoading(false);
+  }
+};
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
