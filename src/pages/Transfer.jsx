@@ -4,349 +4,455 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import {
-  FaPaperPlane,
-  FaDownload,
-  FaUpload,
-  FaUser,
-  FaUniversity,
-  FaCheckCircle,
-  FaSpinner,
-  FaSearch,
-  FaExchangeAlt,
-  FaCreditCard,
-  FaMobileAlt,
-  FaGlobe,
-  FaInfoCircle,
-  FaLock,
-  FaCalendarAlt,
-  FaShieldAlt,
-  FaWallet,
+  FaPaperPlane, FaDownload, FaUpload, FaUser, FaUniversity,
+  FaCheckCircle, FaSpinner, FaSearch, FaExchangeAlt,
+  FaCreditCard, FaMobileAlt, FaInfoCircle, FaShieldAlt, FaWallet,
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import PinVerificationModal from '../components/Common/PinVerificationModal';
 import PinSetupModal from '../components/Common/PinSetupModal';
+import TransactionReceipt from '../components/Common/TransactionReceipt';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Static data
+// ─────────────────────────────────────────────────────────────────────────────
+
+const NIGERIAN_BANKS = [
+  { code: 'VAULTIX',   name: '🚀 Vaultix (Internal – Free & Instant)' },
+  { code: '044',       name: 'Access Bank' },
+  { code: '023',       name: 'Citibank Nigeria' },
+  { code: '050',       name: 'Ecobank Nigeria' },
+  { code: '070',       name: 'Fidelity Bank' },
+  { code: '011',       name: 'First Bank of Nigeria' },
+  { code: '058',       name: 'Guaranty Trust Bank (GTBank)' },
+  { code: '030',       name: 'Heritage Bank' },
+  { code: '301',       name: 'Jaiz Bank' },
+  { code: '082',       name: 'Keystone Bank' },
+  { code: '076',       name: 'Polaris Bank' },
+  { code: '039',       name: 'Stanbic IBTC Bank' },
+  { code: '232',       name: 'Sterling Bank' },
+  { code: '032',       name: 'Union Bank of Nigeria' },
+  { code: '033',       name: 'United Bank for Africa (UBA)' },
+  { code: '035',       name: 'Wema Bank' },
+  { code: '057',       name: 'Zenith Bank' },
+  { code: '101',       name: 'Providus Bank' },
+  { code: '215',       name: 'Unity Bank' },
+  { code: 'OPAY',      name: 'OPay' },
+  { code: 'PALMPAY',   name: 'PalmPay' },
+  { code: 'KUDABANK',  name: 'Kuda Bank' },
+  { code: 'OTHER',     name: 'Other / My bank not listed' },
+];
+
+const BANKS_NO_INTERNAL = NIGERIAN_BANKS.filter(b => b.code !== 'VAULTIX');
+
+const WALLET_PROVIDERS = [
+  { code: 'OPAY',       name: 'OPay' },
+  { code: 'PALMPAY',    name: 'PalmPay' },
+  { code: 'KUDABANK',   name: 'Kuda Bank' },
+  { code: 'MONIEPOINT', name: 'Moniepoint' },
+  { code: 'CHIPPER',    name: 'Chipper Cash' },
+  { code: 'CARBON',     name: 'Carbon' },
+  { code: 'PIGGYVEST',  name: 'PiggyVest' },
+  { code: 'COWRYWISE',  name: 'Cowrywise' },
+];
+
+const NETWORKS = [
+  { code: 'MTN',     ussd: (amt) => `*737*${amt}#` },
+  { code: 'AIRTEL',  ussd: (amt) => `*901*${amt}#` },
+  { code: 'GLO',     ussd: (amt) => `*805*${amt}#` },
+  { code: '9MOBILE', ussd: (amt) => `*322*${amt}#` },
+];
+
+const TABS = [
+  { id: 'transfer', label: 'Send Money', icon: FaPaperPlane, color: 'from-indigo-600 to-blue-600' },
+  { id: 'deposit',  label: 'Deposit',    icon: FaDownload,   color: 'from-green-600 to-emerald-600' },
+  { id: 'withdraw', label: 'Withdraw',   icon: FaUpload,     color: 'from-orange-600 to-red-600' },
+];
+
+const DEPOSIT_METHODS = [
+  { id: 'card', name: 'Debit / Credit Card', icon: FaCreditCard, color: 'from-purple-500 to-pink-500',   desc: 'Visa, Mastercard, Verve' },
+  { id: 'bank', name: 'Bank Transfer',       icon: FaUniversity, color: 'from-blue-500 to-cyan-500',    desc: 'Direct from your bank' },
+  { id: 'ussd', name: 'USSD',                icon: FaMobileAlt,  color: 'from-green-500 to-emerald-500', desc: 'Works without internet' },
+];
+
+const WITHDRAW_METHODS = [
+  { id: 'bank',   name: 'Bank Account',  icon: FaUniversity, color: 'from-blue-500 to-cyan-500',    desc: 'Nigerian bank account' },
+  { id: 'wallet', name: 'Mobile Wallet', icon: FaWallet,     color: 'from-green-500 to-emerald-500', desc: 'OPay, PalmPay & more' },
+  { id: 'card',   name: 'Debit Card',    icon: FaCreditCard, color: 'from-purple-500 to-pink-500',   desc: 'Card linked to account' },
+];
+
+const QUICK_AMOUNTS = {
+  transfer: [1000, 5000, 10000, 50000],
+  deposit:  [5000, 10000, 25000, 50000],
+  withdraw: [5000, 10000, 25000, 50000],
+};
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+const THIS_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 12 }, (_, i) => String(THIS_YEAR + i));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Small helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+const formatCardDisplay = (raw = '') => {
+  const n = raw.replace(/\s/g, '').padEnd(16, '•');
+  return `${n.slice(0,4)} ${n.slice(4,8)} ${n.slice(8,12)} ${n.slice(12,16)}`;
+};
+
+const getCardBrand = (raw = '') => {
+  const n = raw.replace(/\s/g, '');
+  if (n.startsWith('4')) return 'VISA';
+  if (/^(5|2)/.test(n)) return 'MASTERCARD';
+  if (/^(5061|6500)/.test(n)) return 'VERVE';
+  return null;
+};
+
+const fmtCardNum = (val = '') =>
+  val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shared field container
+const FieldGroup = ({ children }) => (
+  <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
+    {children}
+  </div>
+);
+
+// Shared label
+const FieldLabel = ({ children }) => (
+  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
+    {children}
+  </label>
+);
+
+// Info banner
+const InfoBanner = ({ color = 'blue', icon: Icon, title, body }) => {
+  const colors = {
+    blue:   { wrap: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',   icon: 'bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300',   title: 'text-blue-800 dark:text-blue-200',   body: 'text-blue-600 dark:text-blue-300' },
+    green:  { wrap: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',  icon: 'bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300',  title: 'text-green-800 dark:text-green-200',  body: 'text-green-600 dark:text-green-300' },
+    purple: { wrap: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700', icon: 'bg-purple-100 dark:bg-purple-800 text-purple-600 dark:text-purple-300', title: 'text-purple-800 dark:text-purple-200', body: 'text-purple-600 dark:text-purple-300' },
+  };
+  const c = colors[color];
+  return (
+    <div className={`border rounded-2xl p-4 ${c.wrap}`}>
+      <div className="flex items-start gap-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${c.icon}`}>
+          <Icon className="text-sm" />
+        </div>
+        <div>
+          <p className={`text-sm font-semibold ${c.title}`}>{title}</p>
+          <p className={`text-xs mt-0.5 leading-relaxed ${c.body}`}>{body}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Method selector buttons (deposit / withdraw)
+const MethodSelector = ({ methods, selected, onSelect, activeColor }) => (
+  <div className="grid grid-cols-3 gap-3">
+    {methods.map(m => (
+      <button key={m.id} type="button" onClick={() => onSelect(m.id)}
+        className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
+          selected === m.id
+            ? `border-${activeColor}-500 bg-${activeColor}-50 dark:bg-${activeColor}-900/30 shadow-md`
+            : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-300'
+        }`}>
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 bg-gradient-to-br ${m.color}`}>
+          <m.icon className="text-white text-base" />
+        </div>
+        <p className={`text-xs font-semibold ${selected === m.id ? `text-${activeColor}-700 dark:text-${activeColor}-300` : 'text-gray-700 dark:text-gray-300'}`}>
+          {m.name}
+        </p>
+        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{m.desc}</p>
+      </button>
+    ))}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Card Preview (3D flip)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CardPreview = ({ cardData, flipped, onFlip, gradient = 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a855f7 100%)', textColor = 'purple' }) => {
+  const brand = getCardBrand(cardData.cardNumber);
+  return (
+    <div>
+      <div className="relative h-44 rounded-2xl overflow-hidden cursor-pointer select-none"
+        style={{ perspective: '1000px' }} onClick={onFlip}>
+        <motion.div className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}
+          animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.5, ease: 'easeInOut' }}>
+
+          {/* Front */}
+          <div className="absolute inset-0 rounded-2xl p-5 flex flex-col justify-between"
+            style={{ backfaceVisibility: 'hidden', background: gradient }}>
+            <div className="flex justify-between items-start">
+              <div>
+                <p className={`text-${textColor}-200 text-[10px] font-medium uppercase tracking-wider`}>Vaultix</p>
+              </div>
+              {brand && (
+                <div className="bg-white/20 px-2.5 py-1 rounded-md">
+                  <p className="text-white text-xs font-bold tracking-widest">{brand}</p>
+                </div>
+              )}
+            </div>
+            {/* Chip */}
+            <div className="w-10 h-7 rounded bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center">
+              <div className="w-7 h-4 border border-yellow-600/50 rounded-sm grid grid-cols-3 gap-px p-0.5">
+                {[...Array(9)].map((_, i) => <div key={i} className="bg-yellow-600/40 rounded-[1px]" />)}
+              </div>
+            </div>
+            <div>
+              <p className="text-white font-mono text-lg tracking-widest">{formatCardDisplay(cardData.cardNumber)}</p>
+              <div className="flex justify-between items-end mt-3">
+                <div>
+                  <p className={`text-${textColor}-300 text-[9px] uppercase tracking-wider`}>Card Holder</p>
+                  <p className="text-white text-sm font-medium mt-0.5 uppercase tracking-wide">{cardData.cardHolder || 'YOUR NAME'}</p>
+                </div>
+                {cardData.expiryMonth && (
+                  <div className="text-right">
+                    <p className={`text-${textColor}-300 text-[9px] uppercase tracking-wider`}>Expires</p>
+                    <p className="text-white text-sm font-medium mt-0.5">{cardData.expiryMonth}/{cardData.expiryYear?.slice(-2) || 'YY'}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Back */}
+          <div className="absolute inset-0 rounded-2xl flex flex-col justify-between"
+            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}>
+            <div className="h-10 bg-gray-900/70 mt-6" />
+            <div className="px-5 pb-5">
+              <div className="bg-white/10 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex-1 h-7 bg-white/80 rounded-md flex items-center px-3">
+                  <span className="font-mono text-gray-800 font-bold tracking-[0.3em] text-sm">
+                    {cardData.cvv ? '•'.repeat(cardData.cvv.length) : '•••'}
+                  </span>
+                </div>
+                <p className="text-purple-300 text-[10px] ml-3">CVV</p>
+              </div>
+              <p className="text-purple-400 text-[9px] text-center mt-2">Click to flip back</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+      <p className="text-center text-xs text-gray-400 mt-1">Click card to see CVV side</p>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────────────────────────────────────
 
 const Transfer = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+
+  // UI state
   const [activeTab, setActiveTab] = useState(location.state?.action || 'transfer');
   const [loading, setLoading] = useState(false);
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [showPinSetupModal, setShowPinSetupModal] = useState(false);
-  const [pendingTransaction, setPendingTransaction] = useState(null);
   const [hasPin, setHasPin] = useState(false);
-  const [verifyingAccount, setVerifyingAccount] = useState(false);
-  const [recipientVerified, setRecipientVerified] = useState(false);
-  const [recipientName, setRecipientName] = useState('');
-  const [isInternalTransfer, setIsInternalTransfer] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
-  const [selectedWithdrawMethod, setSelectedWithdrawMethod] = useState('bank');
   const [cardFlipped, setCardFlipped] = useState(false);
 
-  const [formData, setFormData] = useState({
-    recipientAccount: '',
-    recipientBank: '',
-    recipientCustomBank: '',
-    amount: '',
-    description: '',
-  });
+  // Modal state
+  const [showPinModal, setShowPinModal]       = useState(false);
+  const [showPinSetupModal, setShowPinSetupModal] = useState(false);
+  const [showReceipt, setShowReceipt]         = useState(false);
 
-  // Card deposit form state
-  const [cardData, setCardData] = useState({
-    cardNumber: '',
-    cardHolder: '',
-    expiryMonth: '',
-    expiryYear: '',
-    cvv: '',
-  });
+  // Transaction state
+  const [pendingTransaction, setPendingTransaction] = useState(null);
+  const [receiptData, setReceiptData]               = useState(null);
 
-  // Bank deposit form state
-  const [bankData, setBankData] = useState({
-    accountName: '',
-    accountNumber: '',
-    bankName: '',
-    routingNumber: '',
-  });
+  // Transfer state
+  const [verifyingAccount, setVerifyingAccount] = useState(false);
+  const [recipientVerified, setRecipientVerified] = useState(false);
+  const [recipientName, setRecipientName]         = useState('');
+  const [isInternalTransfer, setIsInternalTransfer] = useState(false);
 
-  // USSD form state
-  const [ussdData, setUssdData] = useState({
-    phone: '',
-    network: '',
-  });
+  // Method selection
+  const [depositMethod,  setDepositMethod]  = useState('card');
+  const [withdrawMethod, setWithdrawMethod] = useState('bank');
 
-  // Withdraw destination state
-  const [withdrawBankData, setWithdrawBankData] = useState({
-    accountName: '',
-    accountNumber: '',
-    bankName: '',
-  });
+  // Form data
+  const [form, setForm] = useState({ recipientAccount: '', recipientBank: '', recipientCustomBank: '', amount: '', description: '' });
+  const [cardData,         setCardData]         = useState({ cardNumber: '', cardHolder: '', expiryMonth: '', expiryYear: '', cvv: '' });
+  const [bankDepData,      setBankDepData]      = useState({ accountName: '', accountNumber: '', bankName: '', reference: '' });
+  const [ussdData,         setUssdData]         = useState({ phone: '', network: '' });
+  const [wdBankData,       setWdBankData]       = useState({ accountName: '', accountNumber: '', bankName: '' });
+  const [wdWalletData,     setWdWalletData]     = useState({ walletPhone: '', walletProvider: '', walletName: '' });
+  const [wdCardData,       setWdCardData]       = useState({ cardNumber: '', cardHolder: '', bankName: '' });
 
-  const [withdrawWalletData, setWithdrawWalletData] = useState({
-    walletPhone: '',
-    walletProvider: '',
-    walletName: '',
-  });
+  // ── Effects ──────────────────────────────────────────────────────────────
+  useEffect(() => { checkPinStatus(); }, []);
 
-  const [withdrawCardData, setWithdrawCardData] = useState({
-    cardNumber: '',
-    cardHolder: '',
-    bankName: '',
-  });
-
-  const tabs = [
-    { id: 'transfer', label: 'Send Money', icon: FaPaperPlane, color: 'from-indigo-600 to-blue-600' },
-    { id: 'deposit', label: 'Deposit', icon: FaDownload, color: 'from-green-600 to-emerald-600' },
-    { id: 'withdraw', label: 'Withdraw', icon: FaUpload, color: 'from-orange-600 to-red-600' },
-  ];
-
-  const nigerianBanks = [
-    { code: 'VAULTIX', name: '🚀 Vaultix (Internal - Free & Instant)' },
-    { code: '044', name: 'Access Bank' },
-    { code: '023', name: 'Citibank Nigeria' },
-    { code: '050', name: 'Ecobank Nigeria' },
-    { code: '070', name: 'Fidelity Bank' },
-    { code: '011', name: 'First Bank of Nigeria' },
-    { code: '058', name: 'Guaranty Trust Bank (GTBank)' },
-    { code: '030', name: 'Heritage Bank' },
-    { code: '301', name: 'Jaiz Bank' },
-    { code: '082', name: 'Keystone Bank' },
-    { code: '076', name: 'Polaris Bank' },
-    { code: '039', name: 'Stanbic IBTC Bank' },
-    { code: '232', name: 'Sterling Bank' },
-    { code: '032', name: 'Union Bank of Nigeria' },
-    { code: '033', name: 'United Bank for Africa (UBA)' },
-    { code: '035', name: 'Wema Bank' },
-    { code: '057', name: 'Zenith Bank' },
-    { code: '101', name: 'Providus Bank' },
-    { code: '215', name: 'Unity Bank' },
-    { code: 'OPAY', name: 'OPay' },
-    { code: 'PALMPAY', name: 'PalmPay' },
-    { code: 'KUDABANK', name: 'Kuda Bank' },
-    { code: 'OTHER', name: 'Other / My bank not listed' },
-  ];
-
-  const nigerianBanksNoInternal = nigerianBanks.filter(b => b.code !== 'VAULTIX');
-
-  const mobileWalletProviders = [
-    { code: 'OPAY', name: 'OPay' },
-    { code: 'PALMPAY', name: 'PalmPay' },
-    { code: 'KUDABANK', name: 'Kuda Bank' },
-    { code: 'MONIEPOINT', name: 'Moniepoint' },
-    { code: 'CHIPPER', name: 'Chipper Cash' },
-    { code: 'CARBON', name: 'Carbon' },
-    { code: 'PIGGYVEST', name: 'PiggyVest' },
-    { code: 'COWRYWISE', name: 'Cowrywise' },
-  ];
-
-  const nigerianNetworks = [
-    { code: 'MTN', name: 'MTN Nigeria' },
-    { code: 'AIRTEL', name: 'Airtel Nigeria' },
-    { code: 'GLO', name: 'Glo' },
-    { code: '9MOBILE', name: '9Mobile' },
-  ];
-
-  const depositMethods = [
-    { id: 'card', name: 'Debit / Credit Card', icon: FaCreditCard, color: 'from-purple-500 to-pink-500', description: 'Visa, Mastercard, Verve' },
-    { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, color: 'from-blue-500 to-cyan-500', description: 'Direct from your bank' },
-    { id: 'ussd', name: 'USSD', icon: FaMobileAlt, color: 'from-green-500 to-emerald-500', description: 'Works without internet' },
-  ];
-
-  const withdrawMethods = [
-    { id: 'bank', name: 'Bank Account', icon: FaUniversity, color: 'from-blue-500 to-cyan-500', description: 'Nigerian bank account' },
-    { id: 'wallet', name: 'Mobile Wallet', icon: FaWallet, color: 'from-green-500 to-emerald-500', description: 'OPay, PalmPay & more' },
-    { id: 'card', name: 'Debit Card', icon: FaCreditCard, color: 'from-purple-500 to-pink-500', description: 'Card linked to account' },
-  ];
-
-  const quickAmounts = {
-    transfer: [1000, 5000, 10000, 50000],
-    deposit: [5000, 10000, 25000, 50000],
-    withdraw: [5000, 10000, 25000, 50000],
-  };
-
+  // Reset verify when account/bank changes
   useEffect(() => {
-    checkPinStatus();
-  }, []);
+    setRecipientVerified(false);
+    setRecipientName('');
+    setIsInternalTransfer(false);
+  }, [form.recipientAccount, form.recipientBank]);
 
-  useEffect(() => {
-    if (recipientVerified) {
-      setRecipientVerified(false);
-      setRecipientName('');
-      setIsInternalTransfer(false);
-    }
-  }, [formData.recipientAccount, formData.recipientBank]);
-
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const checkPinStatus = async () => {
     try {
-      const response = await api.get('/user/has-pin');
-      setHasPin(response.data.hasPin);
-    } catch (error) {
-      console.error('Error checking PIN status:', error);
-    }
+      const res = await api.get('/user/has-pin');
+      setHasPin(res.data.hasPin);
+    } catch (e) { console.error('PIN check failed', e); }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const getBankName = (code) => {
+    if (code === 'OTHER') return form.recipientCustomBank;
+    return NIGERIAN_BANKS.find(b => b.code === code)?.name || code;
   };
 
-  const handleCardChange = (e) => {
-    const { name, value } = e.target;
-    let formatted = value;
-    if (name === 'cardNumber') {
-      formatted = value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
-    }
-    if (name === 'cvv') {
-      formatted = value.replace(/\D/g, '').slice(0, 4);
-    }
-    setCardData({ ...cardData, [name]: formatted });
+  const getMaxAmount = () =>
+    activeTab === 'transfer' || activeTab === 'withdraw' ? user?.balance || 0 : 1_000_000;
+
+  const resetAll = () => {
+    setForm({ recipientAccount: '', recipientBank: '', recipientCustomBank: '', amount: '', description: '' });
+    setCardData({ cardNumber: '', cardHolder: '', expiryMonth: '', expiryYear: '', cvv: '' });
+    setBankDepData({ accountName: '', accountNumber: '', bankName: '', reference: '' });
+    setUssdData({ phone: '', network: '' });
+    setWdBankData({ accountName: '', accountNumber: '', bankName: '' });
+    setWdWalletData({ walletPhone: '', walletProvider: '', walletName: '' });
+    setWdCardData({ cardNumber: '', cardHolder: '', bankName: '' });
+    setRecipientVerified(false);
+    setRecipientName('');
+    setIsInternalTransfer(false);
+    setDepositMethod('card');
+    setWithdrawMethod('bank');
   };
 
-  const handleBankChange = (e) => {
-    const { name, value } = e.target;
-    setBankData({ ...bankData, [name]: value });
+  // ── Change handlers ───────────────────────────────────────────────────────
+  const onFormChange  = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const onCardChange  = (e) => {
+    let { name, value } = e.target;
+    if (name === 'cardNumber') value = fmtCardNum(value);
+    if (name === 'cvv') value = value.replace(/\D/g,'').slice(0,4);
+    setCardData(p => ({ ...p, [name]: value }));
   };
 
-  const handleUssdChange = (e) => {
-    const { name, value } = e.target;
-    setUssdData({ ...ussdData, [name]: value });
+  const onWdCardChange = (e) => {
+    let { name, value } = e.target;
+    if (name === 'cardNumber') value = fmtCardNum(value);
+    setWdCardData(p => ({ ...p, [name]: value }));
   };
 
-  const handleWithdrawBankChange = (e) => {
-    const { name, value } = e.target;
-    setWithdrawBankData({ ...withdrawBankData, [name]: value });
-  };
-
-  const handleWithdrawWalletChange = (e) => {
-    const { name, value } = e.target;
-    setWithdrawWalletData({ ...withdrawWalletData, [name]: value });
-  };
-
-  const handleWithdrawCardChange = (e) => {
-    const { name, value } = e.target;
-    let formatted = value;
-    if (name === 'cardNumber') {
-      formatted = value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
-    }
-    setWithdrawCardData({ ...withdrawCardData, [name]: formatted });
-  };
-
-  const formatCardDisplay = (number) => {
-    const raw = number.replace(/\s/g, '');
-    const padded = raw.padEnd(16, '•');
-    return `${padded.slice(0, 4)} ${padded.slice(4, 8)} ${padded.slice(8, 12)} ${padded.slice(12, 16)}`;
-  };
-
-  const getCardBrand = (number) => {
-    const raw = number.replace(/\s/g, '');
-    if (raw.startsWith('4')) return 'VISA';
-    if (raw.startsWith('5') || raw.startsWith('2')) return 'MASTERCARD';
-    if (raw.startsWith('5061') || raw.startsWith('6500')) return 'VERVE';
-    return null;
-  };
-
+  // ── Verify recipient account ───────────────────────────────────────────────
   const handleVerifyAccount = async () => {
-    if (!formData.recipientBank) { toast.error('Please select recipient bank'); return; }
-    if (formData.recipientBank === 'OTHER' && !formData.recipientCustomBank) { toast.error('Please enter bank name'); return; }
-    if (!formData.recipientAccount) { toast.error('Please enter recipient account number'); return; }
-    if (formData.recipientAccount.length !== 10 || !/^\d+$/.test(formData.recipientAccount)) { toast.error('Account number must be 10 digits'); return; }
-    if (formData.recipientBank === 'VAULTIX' && formData.recipientAccount === user?.accountNumber) { toast.error('Cannot transfer to your own account'); return; }
-
+    if (!form.recipientBank) { toast.error('Please select recipient bank'); return; }
+    if (form.recipientBank === 'OTHER' && !form.recipientCustomBank) { toast.error('Please enter bank name'); return; }
+    if (!form.recipientAccount || form.recipientAccount.length !== 10 || !/^\d+$/.test(form.recipientAccount)) {
+      toast.error('Account number must be exactly 10 digits'); return;
+    }
+    if (form.recipientBank === 'VAULTIX' && form.recipientAccount === user?.accountNumber) {
+      toast.error('You cannot transfer to your own account'); return;
+    }
     setVerifyingAccount(true);
     try {
-      const response = await api.post('/transactions/verify-account', {
-        accountNumber: formData.recipientAccount,
-        bankCode: formData.recipientBank,
-        bankName: formData.recipientBank === 'OTHER' ? formData.recipientCustomBank : undefined,
+      const res = await api.post('/transactions/verify-account', {
+        accountNumber: form.recipientAccount,
+        bankCode: form.recipientBank,
+        bankName: form.recipientBank === 'OTHER' ? form.recipientCustomBank : undefined,
       });
-      if (response.data.success) {
-        const data = response.data.data;
-        setRecipientName(data.accountName);
+      if (res.data.success) {
+        const d = res.data.data;
+        setRecipientName(d.accountName);
         setRecipientVerified(true);
-        setIsInternalTransfer(data.isInternal || false);
-        toast.success(data.isInternal ? '✅ Vaultix account verified!' : '✅ Account verified!');
+        setIsInternalTransfer(d.isInternal || false);
+        toast.success(d.isInternal ? '✅ Vaultix account verified!' : '✅ Account verified!');
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to verify account');
-      setRecipientVerified(false);
-      setRecipientName('');
-      setIsInternalTransfer(false);
-    } finally {
-      setVerifyingAccount(false);
-    }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to verify account');
+      setRecipientVerified(false); setRecipientName(''); setIsInternalTransfer(false);
+    } finally { setVerifyingAccount(false); }
   };
 
-  const validateWithdraw = () => {
-    if (selectedWithdrawMethod === 'bank') {
-      if (!withdrawBankData.accountName.trim()) { toast.error('Please enter account name'); return false; }
-      if (!withdrawBankData.accountNumber || withdrawBankData.accountNumber.length < 10) { toast.error('Please enter a valid 10-digit account number'); return false; }
-      if (!withdrawBankData.bankName) { toast.error('Please select your bank'); return false; }
+  // ── Validate before PIN ───────────────────────────────────────────────────
+  const validate = () => {
+    const amt = Number(form.amount);
+    if (!form.amount || amt <= 0) { toast.error('Please enter a valid amount'); return false; }
+    if ((activeTab === 'transfer' || activeTab === 'withdraw') && amt > (user?.balance || 0)) {
+      toast.error('Insufficient balance'); return false;
     }
-    if (selectedWithdrawMethod === 'wallet') {
-      if (!withdrawWalletData.walletProvider) { toast.error('Please select a wallet provider'); return false; }
-      if (!withdrawWalletData.walletPhone || withdrawWalletData.walletPhone.length < 11) { toast.error('Please enter a valid 11-digit phone number'); return false; }
-      if (!withdrawWalletData.walletName.trim()) { toast.error('Please enter the account name on the wallet'); return false; }
+    if (activeTab === 'transfer' && !recipientVerified) {
+      toast.error('Please verify recipient account first'); return false;
     }
-    if (selectedWithdrawMethod === 'card') {
-      const raw = withdrawCardData.cardNumber.replace(/\s/g, '');
-      if (raw.length < 16) { toast.error('Please enter a valid 16-digit card number'); return false; }
-      if (!withdrawCardData.cardHolder.trim()) { toast.error('Please enter the cardholder name'); return false; }
-      if (!withdrawCardData.bankName) { toast.error('Please select the card\'s issuing bank'); return false; }
+    if (activeTab === 'deposit') {
+      if (depositMethod === 'card') {
+        if (cardData.cardNumber.replace(/\s/g,'').length < 16) { toast.error('Enter a valid 16-digit card number'); return false; }
+        if (!cardData.cardHolder.trim()) { toast.error('Enter cardholder name'); return false; }
+        if (!cardData.expiryMonth || !cardData.expiryYear) { toast.error('Enter card expiry'); return false; }
+        if (!cardData.cvv || cardData.cvv.length < 3) { toast.error('Enter a valid CVV'); return false; }
+      }
+      if (depositMethod === 'bank') {
+        if (!bankDepData.accountName.trim()) { toast.error('Enter account name'); return false; }
+        if (bankDepData.accountNumber.length < 10) { toast.error('Enter a valid account number'); return false; }
+        if (!bankDepData.bankName) { toast.error('Select your bank'); return false; }
+      }
+      if (depositMethod === 'ussd') {
+        if (!ussdData.network) { toast.error('Select your network'); return false; }
+        if (!ussdData.phone || ussdData.phone.length < 11) { toast.error('Enter a valid phone number'); return false; }
+      }
+    }
+    if (activeTab === 'withdraw') {
+      if (withdrawMethod === 'bank') {
+        if (!wdBankData.bankName) { toast.error('Select destination bank'); return false; }
+        if (wdBankData.accountNumber.length < 10) { toast.error('Enter a valid 10-digit account number'); return false; }
+        if (!wdBankData.accountName.trim()) { toast.error('Enter account name'); return false; }
+      }
+      if (withdrawMethod === 'wallet') {
+        if (!wdWalletData.walletProvider) { toast.error('Select a wallet provider'); return false; }
+        if (!wdWalletData.walletPhone || wdWalletData.walletPhone.length < 11) { toast.error('Enter a valid 11-digit phone number'); return false; }
+        if (!wdWalletData.walletName.trim()) { toast.error('Enter account name on wallet'); return false; }
+      }
+      if (withdrawMethod === 'card') {
+        if (wdCardData.cardNumber.replace(/\s/g,'').length < 16) { toast.error('Enter a valid 16-digit card number'); return false; }
+        if (!wdCardData.cardHolder.trim()) { toast.error('Enter cardholder name'); return false; }
+        if (!wdCardData.bankName) { toast.error("Select the card's issuing bank"); return false; }
+      }
     }
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  // ── Submit → open PIN modal ───────────────────────────────────────────────
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.amount || Number(formData.amount) <= 0) { toast.error('Please enter a valid amount'); return; }
-    if ((activeTab === 'transfer' || activeTab === 'withdraw') && Number(formData.amount) > (user?.balance || 0)) { toast.error('Insufficient balance'); return; }
-    if (activeTab === 'transfer' && !recipientVerified) { toast.error('Please verify recipient account first'); return; }
-
-    if (activeTab === 'deposit') {
-      if (selectedPaymentMethod === 'card') {
-        const raw = cardData.cardNumber.replace(/\s/g, '');
-        if (raw.length < 16) { toast.error('Please enter a valid 16-digit card number'); return; }
-        if (!cardData.cardHolder.trim()) { toast.error('Please enter cardholder name'); return; }
-        if (!cardData.expiryMonth || !cardData.expiryYear) { toast.error('Please enter card expiry'); return; }
-        if (!cardData.cvv || cardData.cvv.length < 3) { toast.error('Please enter a valid CVV'); return; }
-      }
-      if (selectedPaymentMethod === 'bank') {
-        if (!bankData.accountName.trim()) { toast.error('Please enter account name'); return; }
-        if (!bankData.accountNumber || bankData.accountNumber.length < 10) { toast.error('Please enter a valid account number'); return; }
-        if (!bankData.bankName) { toast.error('Please select your bank'); return; }
-      }
-      if (selectedPaymentMethod === 'ussd') {
-        if (!ussdData.phone || ussdData.phone.length < 11) { toast.error('Please enter a valid phone number'); return; }
-        if (!ussdData.network) { toast.error('Please select your network'); return; }
-      }
-    }
-
-    if (activeTab === 'withdraw') {
-      if (!validateWithdraw()) return;
-    }
-
+    if (!validate()) return;
     setPendingTransaction({
       type: activeTab,
-      data: {
-        ...formData,
-        recipientName,
-        isInternal: isInternalTransfer,
-        // deposit
-        paymentMethod: selectedPaymentMethod,
-        cardData: activeTab === 'deposit' && selectedPaymentMethod === 'card' ? cardData : undefined,
-        bankData: activeTab === 'deposit' && selectedPaymentMethod === 'bank' ? bankData : undefined,
-        ussdData: activeTab === 'deposit' && selectedPaymentMethod === 'ussd' ? ussdData : undefined,
-        // withdraw
-        withdrawMethod: selectedWithdrawMethod,
-        withdrawBankData: activeTab === 'withdraw' && selectedWithdrawMethod === 'bank' ? withdrawBankData : undefined,
-        withdrawWalletData: activeTab === 'withdraw' && selectedWithdrawMethod === 'wallet' ? withdrawWalletData : undefined,
-        withdrawCardData: activeTab === 'withdraw' && selectedWithdrawMethod === 'card' ? withdrawCardData : undefined,
-      },
+      amount: Number(form.amount),
+      description: form.description,
+      // transfer
+      recipientAccount: form.recipientAccount,
+      recipientBank: form.recipientBank,
+      recipientCustomBank: form.recipientCustomBank,
+      recipientName,
+      isInternal: isInternalTransfer,
+      // deposit
+      depositMethod,
+      cardData:    depositMethod === 'card' ? cardData : null,
+      bankDepData: depositMethod === 'bank' ? bankDepData : null,
+      ussdData:    depositMethod === 'ussd' ? ussdData : null,
+      // withdraw
+      withdrawMethod,
+      wdBankData:   withdrawMethod === 'bank'   ? wdBankData   : null,
+      wdWalletData: withdrawMethod === 'wallet' ? wdWalletData : null,
+      wdCardData:   withdrawMethod === 'card'   ? wdCardData   : null,
     });
     setShowPinModal(true);
   };
 
+  // ── PIN confirmed → execute API call ──────────────────────────────────────
   const handlePinVerified = async (pin) => {
     if (!pendingTransaction) return;
     setLoading(true);
@@ -354,63 +460,71 @@ const Transfer = () => {
 
     try {
       let endpoint;
-      let successMessage;
-      let requestData = { amount: Number(pendingTransaction.data.amount), pin };
-      if (pendingTransaction.data.description) requestData.description = pendingTransaction.data.description;
+      const body = {
+        amount: pendingTransaction.amount,
+        pin,
+        ...(pendingTransaction.description ? { description: pendingTransaction.description } : {}),
+      };
 
-      switch (pendingTransaction.type) {
-        case 'transfer':
-          endpoint = '/transactions/transfer';
-          requestData.recipientAccount = pendingTransaction.data.recipientAccount;
-          requestData.recipientBank = pendingTransaction.data.recipientBank;
-          requestData.recipientName = pendingTransaction.data.recipientName;
-          if (pendingTransaction.data.recipientCustomBank) requestData.recipientCustomBank = pendingTransaction.data.recipientCustomBank;
-          successMessage = `✅ Transfer to ${pendingTransaction.data.recipientName} completed!`;
-          break;
-        case 'deposit':
-          endpoint = '/transactions/deposit';
-          requestData.paymentMethod = pendingTransaction.data.paymentMethod;
-          successMessage = `✅ Deposit of ${formatCurrency(pendingTransaction.data.amount)} completed! (Demo Mode)`;
-          break;
-        case 'withdraw':
-          endpoint = '/transactions/withdraw';
-          requestData.withdrawMethod = pendingTransaction.data.withdrawMethod;
-          requestData.withdrawBankData = pendingTransaction.data.withdrawBankData;
-          requestData.withdrawWalletData = pendingTransaction.data.withdrawWalletData;
-          requestData.withdrawCardData = pendingTransaction.data.withdrawCardData;
-          successMessage = `✅ Withdrawal of ${formatCurrency(pendingTransaction.data.amount)} completed!`;
-          break;
-        default:
-          throw new Error('Invalid transaction type');
+      if (pendingTransaction.type === 'transfer') {
+        endpoint = '/transactions/transfer';
+        body.recipientAccount = pendingTransaction.recipientAccount;
+        body.recipientBank    = pendingTransaction.recipientBank;
+        body.recipientName    = pendingTransaction.recipientName;
+        if (pendingTransaction.recipientCustomBank) body.recipientCustomBank = pendingTransaction.recipientCustomBank;
+      } else if (pendingTransaction.type === 'deposit') {
+        endpoint = '/transactions/deposit';
+        body.paymentMethod = pendingTransaction.depositMethod;
+      } else {
+        endpoint = '/transactions/withdraw';
+        body.withdrawMethod   = pendingTransaction.withdrawMethod;
+        body.withdrawBankData = pendingTransaction.wdBankData;
+        body.withdrawWalletData = pendingTransaction.wdWalletData;
+        body.withdrawCardData = pendingTransaction.wdCardData;
       }
 
-      const response = await api.post(endpoint, requestData);
-      if (response.data.success) {
-        toast.success(response.data.message || successMessage);
-        if (response.data.data?.newBalance !== undefined) updateUser({ ...user, balance: response.data.data.newBalance });
+      const res = await api.post(endpoint, body);
 
-        setFormData({ recipientAccount: '', recipientBank: '', recipientCustomBank: '', amount: '', description: '' });
-        setCardData({ cardNumber: '', cardHolder: '', expiryMonth: '', expiryYear: '', cvv: '' });
-        setBankData({ accountName: '', accountNumber: '', bankName: '', routingNumber: '' });
-        setUssdData({ phone: '', network: '' });
-        setWithdrawBankData({ accountName: '', accountNumber: '', bankName: '' });
-        setWithdrawWalletData({ walletPhone: '', walletProvider: '', walletName: '' });
-        setWithdrawCardData({ cardNumber: '', cardHolder: '', bankName: '' });
-        setRecipientVerified(false);
-        setRecipientName('');
-        setIsInternalTransfer(false);
-        setSelectedPaymentMethod('card');
-        setSelectedWithdrawMethod('bank');
-        setTimeout(() => navigate('/dashboard', { replace: true }), 2000);
+      if (res.data.success) {
+        const txData = res.data.data || {};
+
+        // Update balance
+        if (txData.newBalance !== undefined) {
+          updateUser({ ...user, balance: txData.newBalance });
+        }
+
+        // Build receipt
+        const receipt = {
+          ...txData,
+          amount:      pendingTransaction.amount,
+          status:      txData.status || 'successful',
+          type:        pendingTransaction.type === 'deposit' ? 'credit' : 'debit',
+          subType:     pendingTransaction.type,
+          description: pendingTransaction.description || null,
+          createdAt:   txData.createdAt || new Date().toISOString(),
+          reference:   txData.reference || txData.transactionId || txData._id || null,
+          recipientName:    pendingTransaction.recipientName || null,
+          recipientAccount: pendingTransaction.recipientAccount || null,
+          recipientBank:    pendingTransaction.recipientBank
+            ? NIGERIAN_BANKS.find(b => b.code === pendingTransaction.recipientBank)?.name || pendingTransaction.recipientBank
+            : null,
+          senderName:    user?.name || null,
+          senderAccount: user?.accountNumber || null,
+          balanceAfter:  txData.newBalance ?? txData.balanceAfter ?? null,
+        };
+
+        resetAll();
+        setReceiptData(receipt);
+        setShowReceipt(true);
       }
-    } catch (error) {
-      if (error.response?.data?.needsPinSetup) {
+    } catch (err) {
+      if (err.response?.data?.needsPinSetup) {
         setShowPinSetupModal(true);
         toast.error('Please set your transaction PIN first');
-      } else if (error.response?.status === 401) {
+      } else if (err.response?.status === 401) {
         toast.error('Invalid transaction PIN');
       } else {
-        toast.error(error.response?.data?.message || 'Transaction failed');
+        toast.error(err.response?.data?.message || 'Transaction failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -418,55 +532,35 @@ const Transfer = () => {
     }
   };
 
-  const handlePinSetupSuccess = () => {
-    setHasPin(true);
-    toast.success('PIN set successfully! You can now make transactions.');
+  const handleReceiptClose = () => {
+    setShowReceipt(false);
+    setReceiptData(null);
+    navigate('/dashboard', { replace: true });
   };
 
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    setFormData({ recipientAccount: '', recipientBank: '', recipientCustomBank: '', amount: '', description: '' });
-    setRecipientVerified(false);
-    setRecipientName('');
-    setIsInternalTransfer(false);
+  const handleTabChange = (id) => {
+    setActiveTab(id);
+    resetAll();
   };
 
-  const getMaxAmount = () => {
-    if (activeTab === 'transfer' || activeTab === 'withdraw') return user?.balance || 0;
-    return 1000000;
-  };
+  const currentTab = TABS.find(t => t.id === activeTab);
 
-  const getSelectedBankName = () => {
-    if (formData.recipientBank === 'OTHER') return formData.recipientCustomBank;
-    return nigerianBanks.find(b => b.code === formData.recipientBank)?.name || '';
-  };
-
-  const currentTab = tabs.find(t => t.id === activeTab);
-  const cardBrand = getCardBrand(cardData.cardNumber);
-  const withdrawCardBrand = getCardBrand(withdrawCardData.cardNumber);
-
-  const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <div className="max-w-2xl mx-auto">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
 
-          {/* Tabs */}
+          {/* ── Tab bar ── */}
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex -mb-px">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
+              {TABS.map(tab => (
+                <button key={tab.id} onClick={() => handleTabChange(tab.id)}
                   className={`flex-1 py-4 px-1 text-center border-b-2 font-medium text-sm transition-all duration-200 ${
                     activeTab === tab.id
-                      ? `border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-gradient-to-r ${tab.color} bg-clip-text text-transparent`
+                      ? `border-indigo-500 bg-gradient-to-r ${tab.color} bg-clip-text text-transparent`
                       : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                  }`}
-                >
+                  }`}>
                   <tab.icon className="inline-block mr-2" />
                   {tab.label}
                 </button>
@@ -474,183 +568,129 @@ const Transfer = () => {
             </nav>
           </div>
 
-          {/* Form */}
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* ── DEPOSIT SECTION ── */}
+              {/* ════════════════════════════════════════
+                  DEPOSIT TAB
+              ════════════════════════════════════════ */}
               {activeTab === 'deposit' && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-
-                  {/* Payment Method Selector */}
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       Choose Payment Method
                     </label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {depositMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          type="button"
-                          onClick={() => setSelectedPaymentMethod(method.id)}
-                          className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
-                            selectedPaymentMethod === method.id
-                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-md'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700'
-                          }`}
-                        >
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 bg-gradient-to-br ${method.color}`}>
-                            <method.icon className="text-white text-base" />
-                          </div>
-                          <p className={`text-xs font-semibold ${selectedPaymentMethod === method.id ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                            {method.name}
-                          </p>
-                          <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{method.description}</p>
-                        </button>
-                      ))}
-                    </div>
+                    <MethodSelector methods={DEPOSIT_METHODS} selected={depositMethod} onSelect={setDepositMethod} activeColor="indigo" />
                   </div>
 
                   <AnimatePresence mode="wait">
-                    {/* ── CARD FORM ── */}
-                    {selectedPaymentMethod === 'card' && (
-                      <motion.div key="card-form" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
-                        {/* Card Preview */}
-                        <div className="relative h-44 rounded-2xl overflow-hidden cursor-pointer select-none" style={{ perspective: '1000px' }} onClick={() => setCardFlipped(!cardFlipped)}>
-                          <motion.div className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }} animate={{ rotateY: cardFlipped ? 180 : 0 }} transition={{ duration: 0.5, ease: 'easeInOut' }}>
-                            <div className="absolute inset-0 rounded-2xl p-5 flex flex-col justify-between" style={{ backfaceVisibility: 'hidden', background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%)' }}>
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="text-purple-200 text-[10px] font-medium uppercase tracking-wider">Vaultix</p>
-                                  <p className="text-white text-xs font-light opacity-60 mt-0.5">Deposit Card</p>
-                                </div>
-                                {cardBrand && (
-                                  <div className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-md">
-                                    <p className="text-white text-xs font-bold tracking-widest">{cardBrand}</p>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-7 rounded bg-gradient-to-br from-yellow-300 to-yellow-500 opacity-90 flex items-center justify-center">
-                                  <div className="w-7 h-4 border border-yellow-600/50 rounded-sm grid grid-cols-3 gap-px p-0.5">
-                                    {[...Array(9)].map((_, i) => <div key={i} className="bg-yellow-600/40 rounded-[1px]" />)}
-                                  </div>
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-white font-mono text-lg tracking-widest">{formatCardDisplay(cardData.cardNumber)}</p>
-                                <div className="flex justify-between items-end mt-3">
-                                  <div>
-                                    <p className="text-purple-300 text-[9px] uppercase tracking-wider">Card Holder</p>
-                                    <p className="text-white text-sm font-medium mt-0.5 uppercase tracking-wide">{cardData.cardHolder || 'YOUR NAME'}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-purple-300 text-[9px] uppercase tracking-wider">Expires</p>
-                                    <p className="text-white text-sm font-medium mt-0.5">{cardData.expiryMonth || 'MM'}/{cardData.expiryYear?.slice(-2) || 'YY'}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="absolute inset-0 rounded-2xl flex flex-col justify-between" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' }}>
-                              <div className="h-10 bg-gray-900/70 mt-6" />
-                              <div className="px-5 pb-5 space-y-3">
-                                <div className="bg-white/10 rounded-lg p-3 flex items-center justify-between">
-                                  <div className="flex-1 h-7 bg-white/80 rounded-md flex items-center px-3">
-                                    <span className="font-mono text-gray-800 font-bold tracking-[0.3em] text-sm">{cardData.cvv ? '•'.repeat(cardData.cvv.length) : '•••'}</span>
-                                  </div>
-                                  <p className="text-purple-300 text-[10px] ml-3 text-right">CVV</p>
-                                </div>
-                                <p className="text-purple-400 text-[9px] text-center">Click to flip back</p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        </div>
-                        <p className="text-center text-xs text-gray-400">Click card to see CVV side</p>
-
-                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
+                    {/* CARD */}
+                    {depositMethod === 'card' && (
+                      <motion.div key="dep-card"
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4">
+                        <CardPreview cardData={cardData} flipped={cardFlipped} onFlip={() => setCardFlipped(p => !p)} />
+                        <FieldGroup>
+                          {/* Card number */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Card Number</label>
+                            <FieldLabel>Card Number</FieldLabel>
                             <div className="relative">
                               <FaCreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input type="text" name="cardNumber" value={cardData.cardNumber} onChange={handleCardChange} placeholder="0000 0000 0000 0000" maxLength="19" className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white" />
+                              <input type="text" name="cardNumber" value={cardData.cardNumber} onChange={onCardChange}
+                                placeholder="0000 0000 0000 0000" maxLength="19"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white" />
                             </div>
                           </div>
+                          {/* Cardholder */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Cardholder Name</label>
+                            <FieldLabel>Cardholder Name</FieldLabel>
                             <div className="relative">
                               <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input type="text" name="cardHolder" value={cardData.cardHolder} onChange={handleCardChange} placeholder="Name on card" className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
+                              <input type="text" name="cardHolder" value={cardData.cardHolder} onChange={onCardChange}
+                                placeholder="Name on card"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                             </div>
                           </div>
+                          {/* Expiry + CVV */}
                           <div className="grid grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Month</label>
-                              <select name="expiryMonth" value={cardData.expiryMonth} onChange={handleCardChange} className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
+                              <FieldLabel>Month</FieldLabel>
+                              <select name="expiryMonth" value={cardData.expiryMonth} onChange={onCardChange}
+                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
                                 <option value="">MM</option>
-                                {months.map(m => <option key={m} value={m}>{m}</option>)}
+                                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Year</label>
-                              <select name="expiryYear" value={cardData.expiryYear} onChange={handleCardChange} className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
+                              <FieldLabel>Year</FieldLabel>
+                              <select name="expiryYear" value={cardData.expiryYear} onChange={onCardChange}
+                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
                                 <option value="">YY</option>
-                                {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">CVV</label>
-                              <input type="text" name="cvv" value={cardData.cvv} onChange={handleCardChange} onFocus={() => setCardFlipped(true)} onBlur={() => setCardFlipped(false)} placeholder="•••" maxLength="4" className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
+                              <FieldLabel>CVV</FieldLabel>
+                              <input type="text" name="cvv" value={cardData.cvv} onChange={onCardChange}
+                                onFocus={() => setCardFlipped(true)} onBlur={() => setCardFlipped(false)}
+                                placeholder="•••" maxLength="4"
+                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                             </div>
                           </div>
-                        </div>
+                        </FieldGroup>
                         <div className="flex items-center gap-2 px-1">
                           <FaShieldAlt className="text-green-500 text-sm flex-shrink-0" />
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Your card details are encrypted and secured with 256-bit SSL. We never store your CVV.</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Card details are 256-bit encrypted. We never store your CVV.</p>
                         </div>
                       </motion.div>
                     )}
 
-                    {/* ── BANK TRANSFER FORM ── */}
-                    {selectedPaymentMethod === 'bank' && (
-                      <motion.div key="bank-form" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-2xl p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-800 flex items-center justify-center flex-shrink-0">
-                              <FaUniversity className="text-blue-600 dark:text-blue-300 text-sm" />
-                            </div>
-                            <div>
-                              <p className="text-blue-800 dark:text-blue-200 text-sm font-semibold">Bank Transfer Details</p>
-                              <p className="text-blue-600 dark:text-blue-300 text-xs mt-0.5 leading-relaxed">Enter your source bank account details. Funds will be pulled from this account and credited to your Vaultix wallet.</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
+                    {/* BANK */}
+                    {depositMethod === 'bank' && (
+                      <motion.div key="dep-bank"
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4">
+                        <InfoBanner color="blue" icon={FaUniversity}
+                          title="Bank Transfer Details"
+                          body="Enter your source bank account. Funds will be pulled from this account and credited to your Vaultix wallet." />
+                        <FieldGroup>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Name</label>
+                            <FieldLabel>Account Name</FieldLabel>
                             <div className="relative">
                               <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input type="text" name="accountName" value={bankData.accountName} onChange={handleBankChange} placeholder="Full name on bank account" className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
+                              <input type="text" name="accountName" value={bankDepData.accountName}
+                                onChange={e => setBankDepData(p => ({ ...p, accountName: e.target.value }))}
+                                placeholder="Full name on bank account"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Source Bank</label>
+                            <FieldLabel>Source Bank</FieldLabel>
                             <div className="relative">
                               <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <select name="bankName" value={bankData.bankName} onChange={handleBankChange} className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none">
+                              <select name="bankName" value={bankDepData.bankName}
+                                onChange={e => setBankDepData(p => ({ ...p, bankName: e.target.value }))}
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none">
                                 <option value="">Select your bank</option>
-                                {nigerianBanksNoInternal.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
+                                {BANKS_NO_INTERNAL.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
                               </select>
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Number</label>
-                            <input type="text" name="accountNumber" value={bankData.accountNumber} onChange={handleBankChange} placeholder="10-digit account number" maxLength="10" className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
+                            <FieldLabel>Account Number</FieldLabel>
+                            <input type="text" name="accountNumber" value={bankDepData.accountNumber}
+                              onChange={e => setBankDepData(p => ({ ...p, accountNumber: e.target.value.replace(/\D/g,'').slice(0,10) }))}
+                              placeholder="10-digit account number" maxLength="10"
+                              className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Transfer Reference <span className="font-normal normal-case text-gray-400">(optional)</span></label>
-                            <input type="text" name="routingNumber" value={bankData.routingNumber} onChange={handleBankChange} placeholder="e.g. DEP/2024/001" className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
+                            <FieldLabel>Transfer Reference <span className="font-normal normal-case text-gray-400">(optional)</span></FieldLabel>
+                            <input type="text" value={bankDepData.reference}
+                              onChange={e => setBankDepData(p => ({ ...p, reference: e.target.value }))}
+                              placeholder="e.g. DEP/2024/001"
+                              className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                           </div>
-                        </div>
+                        </FieldGroup>
                         <div className="flex items-center gap-2 px-1">
                           <FaInfoCircle className="text-blue-400 text-sm flex-shrink-0" />
                           <p className="text-xs text-gray-500 dark:text-gray-400">Bank transfers typically process within 2–5 minutes during business hours.</p>
@@ -658,60 +698,60 @@ const Transfer = () => {
                       </motion.div>
                     )}
 
-                    {/* ── USSD FORM ── */}
-                    {selectedPaymentMethod === 'ussd' && (
-                      <motion.div key="ussd-form" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center flex-shrink-0">
-                              <FaMobileAlt className="text-green-600 dark:text-green-300 text-sm" />
-                            </div>
-                            <div>
-                              <p className="text-green-800 dark:text-green-200 text-sm font-semibold">USSD Payment</p>
-                              <p className="text-green-600 dark:text-green-300 text-xs mt-0.5 leading-relaxed">After submitting, you'll receive a USSD prompt on your phone to authorize the payment. Works without internet.</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
+                    {/* USSD */}
+                    {depositMethod === 'ussd' && (
+                      <motion.div key="dep-ussd"
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4">
+                        <InfoBanner color="green" icon={FaMobileAlt}
+                          title="USSD Payment"
+                          body="After submitting, you'll receive a USSD prompt on your phone to authorize the payment. Works without internet." />
+                        <FieldGroup>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wider">Mobile Network</label>
+                            <FieldLabel>Mobile Network</FieldLabel>
                             <div className="grid grid-cols-4 gap-2">
-                              {nigerianNetworks.map((net) => (
-                                <button key={net.code} type="button" onClick={() => setUssdData({ ...ussdData, network: net.code })}
-                                  className={`py-2.5 px-1 rounded-xl border-2 text-center transition-all text-xs font-semibold ${ussdData.network === net.code ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 hover:border-gray-300'}`}>
-                                  {net.code}
+                              {NETWORKS.map(n => (
+                                <button key={n.code} type="button" onClick={() => setUssdData(p => ({ ...p, network: n.code }))}
+                                  className={`py-2.5 rounded-xl border-2 text-center text-xs font-semibold transition-all ${
+                                    ussdData.network === n.code
+                                      ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 hover:border-gray-300'
+                                  }`}>
+                                  {n.code}
                                 </button>
                               ))}
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Phone Number</label>
+                            <FieldLabel>Phone Number</FieldLabel>
                             <div className="relative">
                               <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                                 <FaMobileAlt className="text-gray-400 text-sm" />
                                 <span className="text-gray-400 text-sm ml-1">+234</span>
                               </div>
-                              <input type="tel" name="phone" value={ussdData.phone} onChange={handleUssdChange} placeholder="08012345678" maxLength="11" className="w-full pl-20 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
+                              <input type="tel" name="phone" value={ussdData.phone}
+                                onChange={e => setUssdData(p => ({ ...p, phone: e.target.value.replace(/\D/g,'').slice(0,11) }))}
+                                placeholder="08012345678" maxLength="11"
+                                className="w-full pl-20 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                             </div>
                           </div>
-                          {ussdData.network && formData.amount && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-gray-900 rounded-xl p-4 text-center">
+                          {/* USSD code preview */}
+                          {ussdData.network && form.amount && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                              className="bg-gray-900 rounded-xl p-4 text-center">
                               <p className="text-gray-400 text-xs mb-1">Dial this code to pay</p>
                               <p className="text-green-400 font-mono text-xl font-bold tracking-wider">
-                                {ussdData.network === 'MTN' ? `*737*${formData.amount}#` :
-                                 ussdData.network === 'AIRTEL' ? `*901*${formData.amount}#` :
-                                 ussdData.network === 'GLO' ? `*805*${formData.amount}#` :
-                                 `*322*${formData.amount}#`}
+                                {NETWORKS.find(n => n.code === ussdData.network)?.ussd(form.amount)}
                               </p>
-                              <p className="text-gray-500 text-[10px] mt-1">Amount: {formatCurrency(formData.amount)}</p>
+                              <p className="text-gray-500 text-[10px] mt-1">Amount: {formatCurrency(form.amount)}</p>
                             </motion.div>
                           )}
-                        </div>
+                        </FieldGroup>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  {/* Demo Notice */}
+                  {/* Demo notice */}
                   <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
                     <p className="text-yellow-800 dark:text-yellow-200 text-xs flex items-center gap-2">
                       <FaInfoCircle className="flex-shrink-0" />
@@ -721,101 +761,58 @@ const Transfer = () => {
                 </motion.div>
               )}
 
-              {/* ── WITHDRAW SECTION ── */}
+              {/* ════════════════════════════════════════
+                  WITHDRAW TAB
+              ════════════════════════════════════════ */}
               {activeTab === 'withdraw' && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-
-                  {/* Withdraw Destination Selector */}
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       Where are you withdrawing to?
                     </label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {withdrawMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          type="button"
-                          onClick={() => setSelectedWithdrawMethod(method.id)}
-                          className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
-                            selectedWithdrawMethod === method.id
-                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 shadow-md'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700'
-                          }`}
-                        >
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 bg-gradient-to-br ${method.color}`}>
-                            <method.icon className="text-white text-base" />
-                          </div>
-                          <p className={`text-xs font-semibold ${selectedWithdrawMethod === method.id ? 'text-orange-700 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                            {method.name}
-                          </p>
-                          <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{method.description}</p>
-                        </button>
-                      ))}
-                    </div>
+                    <MethodSelector methods={WITHDRAW_METHODS} selected={withdrawMethod} onSelect={setWithdrawMethod} activeColor="orange" />
                   </div>
 
                   <AnimatePresence mode="wait">
-
-                    {/* ── WITHDRAW TO BANK ACCOUNT ── */}
-                    {selectedWithdrawMethod === 'bank' && (
-                      <motion.div key="withdraw-bank" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-2xl p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-800 flex items-center justify-center flex-shrink-0">
-                              <FaUniversity className="text-blue-600 dark:text-blue-300 text-sm" />
-                            </div>
-                            <div>
-                              <p className="text-blue-800 dark:text-blue-200 text-sm font-semibold">Withdraw to Bank Account</p>
-                              <p className="text-blue-600 dark:text-blue-300 text-xs mt-0.5 leading-relaxed">Enter the Nigerian bank account details you want to receive funds in. Must be a valid account in your name.</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
-                          {/* Destination Bank */}
+                    {/* BANK */}
+                    {withdrawMethod === 'bank' && (
+                      <motion.div key="wd-bank"
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4">
+                        <InfoBanner color="blue" icon={FaUniversity}
+                          title="Withdraw to Bank Account"
+                          body="Enter the Nigerian bank account details you want to receive funds in. Must be a valid account in your name." />
+                        <FieldGroup>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Destination Bank</label>
+                            <FieldLabel>Destination Bank</FieldLabel>
                             <div className="relative">
                               <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <select name="bankName" value={withdrawBankData.bankName} onChange={handleWithdrawBankChange}
+                              <select name="bankName" value={wdBankData.bankName}
+                                onChange={e => setWdBankData(p => ({ ...p, bankName: e.target.value }))}
                                 className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none">
                                 <option value="">Select destination bank</option>
-                                {nigerianBanksNoInternal.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
+                                {BANKS_NO_INTERNAL.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
                               </select>
                             </div>
                           </div>
-
-                          {/* Account Number */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Number</label>
-                            <input
-                              type="text"
-                              name="accountNumber"
-                              value={withdrawBankData.accountNumber}
-                              onChange={handleWithdrawBankChange}
-                              placeholder="10-digit account number"
-                              maxLength="10"
-                              className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono"
-                            />
+                            <FieldLabel>Account Number</FieldLabel>
+                            <input type="text" value={wdBankData.accountNumber}
+                              onChange={e => setWdBankData(p => ({ ...p, accountNumber: e.target.value.replace(/\D/g,'').slice(0,10) }))}
+                              placeholder="10-digit account number" maxLength="10"
+                              className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                           </div>
-
-                          {/* Account Name */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Name</label>
+                            <FieldLabel>Account Name</FieldLabel>
                             <div className="relative">
                               <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input
-                                type="text"
-                                name="accountName"
-                                value={withdrawBankData.accountName}
-                                onChange={handleWithdrawBankChange}
+                              <input type="text" value={wdBankData.accountName}
+                                onChange={e => setWdBankData(p => ({ ...p, accountName: e.target.value }))}
                                 placeholder="Full name on the bank account"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                              />
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                             </div>
                           </div>
-                        </div>
-
+                        </FieldGroup>
                         <div className="flex items-center gap-2 px-1">
                           <FaInfoCircle className="text-blue-400 text-sm flex-shrink-0" />
                           <p className="text-xs text-gray-500 dark:text-gray-400">Withdrawals to bank accounts typically arrive within 5–10 minutes.</p>
@@ -823,80 +820,55 @@ const Transfer = () => {
                       </motion.div>
                     )}
 
-                    {/* ── WITHDRAW TO MOBILE WALLET ── */}
-                    {selectedWithdrawMethod === 'wallet' && (
-                      <motion.div key="withdraw-wallet" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-800 flex items-center justify-center flex-shrink-0">
-                              <FaWallet className="text-green-600 dark:text-green-300 text-sm" />
-                            </div>
-                            <div>
-                              <p className="text-green-800 dark:text-green-200 text-sm font-semibold">Withdraw to Mobile Wallet</p>
-                              <p className="text-green-600 dark:text-green-300 text-xs mt-0.5 leading-relaxed">Funds will be sent to your mobile wallet account. Make sure the phone number matches the wallet account.</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
-                          {/* Wallet Provider Grid */}
+                    {/* WALLET */}
+                    {withdrawMethod === 'wallet' && (
+                      <motion.div key="wd-wallet"
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4">
+                        <InfoBanner color="green" icon={FaWallet}
+                          title="Withdraw to Mobile Wallet"
+                          body="Funds will be sent to your mobile wallet account. Make sure the phone number matches the wallet account." />
+                        <FieldGroup>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wider">Wallet Provider</label>
+                            <FieldLabel>Wallet Provider</FieldLabel>
                             <div className="grid grid-cols-4 gap-2">
-                              {mobileWalletProviders.map((provider) => (
-                                <button
-                                  key={provider.code}
-                                  type="button"
-                                  onClick={() => setWithdrawWalletData({ ...withdrawWalletData, walletProvider: provider.code })}
-                                  className={`py-2.5 px-1 rounded-xl border-2 text-center transition-all text-[10px] font-semibold leading-tight ${
-                                    withdrawWalletData.walletProvider === provider.code
+                              {WALLET_PROVIDERS.map(p => (
+                                <button key={p.code} type="button"
+                                  onClick={() => setWdWalletData(prev => ({ ...prev, walletProvider: p.code }))}
+                                  className={`py-2.5 px-1 rounded-xl border-2 text-center text-[10px] font-semibold leading-tight transition-all ${
+                                    wdWalletData.walletProvider === p.code
                                       ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                                       : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 hover:border-gray-300'
-                                  }`}
-                                >
-                                  {provider.name}
+                                  }`}>
+                                  {p.name}
                                 </button>
                               ))}
                             </div>
                           </div>
-
-                          {/* Wallet Phone */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Wallet Phone Number</label>
+                            <FieldLabel>Wallet Phone Number</FieldLabel>
                             <div className="relative">
                               <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                                 <FaMobileAlt className="text-gray-400 text-sm" />
                                 <span className="text-gray-400 text-sm ml-1">+234</span>
                               </div>
-                              <input
-                                type="tel"
-                                name="walletPhone"
-                                value={withdrawWalletData.walletPhone}
-                                onChange={handleWithdrawWalletChange}
-                                placeholder="08012345678"
-                                maxLength="11"
-                                className="w-full pl-20 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono"
-                              />
+                              <input type="tel" value={wdWalletData.walletPhone}
+                                onChange={e => setWdWalletData(p => ({ ...p, walletPhone: e.target.value.replace(/\D/g,'').slice(0,11) }))}
+                                placeholder="08012345678" maxLength="11"
+                                className="w-full pl-20 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
                             </div>
                           </div>
-
-                          {/* Wallet Account Name */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Account Name on Wallet</label>
+                            <FieldLabel>Account Name on Wallet</FieldLabel>
                             <div className="relative">
                               <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input
-                                type="text"
-                                name="walletName"
-                                value={withdrawWalletData.walletName}
-                                onChange={handleWithdrawWalletChange}
+                              <input type="text" value={wdWalletData.walletName}
+                                onChange={e => setWdWalletData(p => ({ ...p, walletName: e.target.value }))}
                                 placeholder="Full name on wallet account"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                              />
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                             </div>
                           </div>
-                        </div>
-
+                        </FieldGroup>
                         <div className="flex items-center gap-2 px-1">
                           <FaInfoCircle className="text-green-400 text-sm flex-shrink-0" />
                           <p className="text-xs text-gray-500 dark:text-gray-400">Mobile wallet transfers are usually instant once confirmed.</p>
@@ -904,105 +876,74 @@ const Transfer = () => {
                       </motion.div>
                     )}
 
-                    {/* ── WITHDRAW TO DEBIT CARD ── */}
-                    {selectedWithdrawMethod === 'card' && (
-                      <motion.div key="withdraw-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.2 }} className="space-y-4">
-                        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
-                              <FaCreditCard className="text-purple-600 dark:text-purple-300 text-sm" />
-                            </div>
-                            <div>
-                              <p className="text-purple-800 dark:text-purple-200 text-sm font-semibold">Withdraw to Debit Card</p>
-                              <p className="text-purple-600 dark:text-purple-300 text-xs mt-0.5 leading-relaxed">Enter your debit card number and the bank it belongs to. Funds will be credited to the linked account.</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Card Preview for Withdraw */}
-                        <div className="relative h-36 rounded-2xl overflow-hidden select-none"
-                          style={{ background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)' }}>
+                    {/* CARD */}
+                    {withdrawMethod === 'card' && (
+                      <motion.div key="wd-card"
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4">
+                        <InfoBanner color="purple" icon={FaCreditCard}
+                          title="Withdraw to Debit Card"
+                          body="Enter your debit card number and issuing bank. Funds will be credited to the linked account." />
+                        {/* Mini card preview */}
+                        <div className="relative h-32 rounded-2xl overflow-hidden select-none"
+                          style={{ background: 'linear-gradient(135deg,#ea580c,#dc2626)' }}>
                           <div className="absolute inset-0 p-5 flex flex-col justify-between">
                             <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-orange-200 text-[10px] font-medium uppercase tracking-wider">Withdrawal Card</p>
-                              </div>
-                              {withdrawCardBrand && (
+                              <p className="text-orange-200 text-[10px] font-medium uppercase tracking-wider">Withdrawal Card</p>
+                              {getCardBrand(wdCardData.cardNumber) && (
                                 <div className="bg-white/20 px-2.5 py-1 rounded-md">
-                                  <p className="text-white text-xs font-bold tracking-widest">{withdrawCardBrand}</p>
+                                  <p className="text-white text-xs font-bold tracking-widest">{getCardBrand(wdCardData.cardNumber)}</p>
                                 </div>
                               )}
                             </div>
                             <div>
-                              <p className="text-white font-mono text-lg tracking-widest">{formatCardDisplay(withdrawCardData.cardNumber)}</p>
+                              <p className="text-white font-mono text-lg tracking-widest">{formatCardDisplay(wdCardData.cardNumber)}</p>
                               <div className="flex justify-between items-end mt-2">
                                 <div>
                                   <p className="text-orange-300 text-[9px] uppercase tracking-wider">Card Holder</p>
-                                  <p className="text-white text-sm font-medium uppercase tracking-wide">{withdrawCardData.cardHolder || 'YOUR NAME'}</p>
+                                  <p className="text-white text-sm font-medium uppercase">{wdCardData.cardHolder || 'YOUR NAME'}</p>
                                 </div>
                                 <div className="text-right">
                                   <p className="text-orange-300 text-[9px] uppercase tracking-wider">Issuing Bank</p>
                                   <p className="text-white text-xs font-medium">
-                                    {nigerianBanksNoInternal.find(b => b.code === withdrawCardData.bankName)?.name?.split(' ')[0] || '—'}
+                                    {BANKS_NO_INTERNAL.find(b => b.code === wdCardData.bankName)?.name?.split(' ')[0] || '—'}
                                   </p>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-
-                        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-600">
-                          {/* Card Number */}
+                        <FieldGroup>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Card Number</label>
+                            <FieldLabel>Card Number</FieldLabel>
                             <div className="relative">
                               <FaCreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input
-                                type="text"
-                                name="cardNumber"
-                                value={withdrawCardData.cardNumber}
-                                onChange={handleWithdrawCardChange}
-                                placeholder="0000 0000 0000 0000"
-                                maxLength="19"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white"
-                              />
+                              <input type="text" name="cardNumber" value={wdCardData.cardNumber} onChange={onWdCardChange}
+                                placeholder="0000 0000 0000 0000" maxLength="19"
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white" />
                             </div>
                           </div>
-
-                          {/* Cardholder Name */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Cardholder Name</label>
+                            <FieldLabel>Cardholder Name</FieldLabel>
                             <div className="relative">
                               <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input
-                                type="text"
-                                name="cardHolder"
-                                value={withdrawCardData.cardHolder}
-                                onChange={handleWithdrawCardChange}
+                              <input type="text" name="cardHolder" value={wdCardData.cardHolder} onChange={onWdCardChange}
                                 placeholder="Name printed on card"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm"
-                              />
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
                             </div>
                           </div>
-
-                          {/* Issuing Bank */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Card's Issuing Bank</label>
+                            <FieldLabel>Card's Issuing Bank</FieldLabel>
                             <div className="relative">
                               <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <select
-                                name="bankName"
-                                value={withdrawCardData.bankName}
-                                onChange={handleWithdrawCardChange}
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none"
-                              >
+                              <select name="bankName" value={wdCardData.bankName} onChange={onWdCardChange}
+                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white bg-white text-sm appearance-none">
                                 <option value="">Select issuing bank</option>
-                                {nigerianBanksNoInternal.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
+                                {BANKS_NO_INTERNAL.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
                               </select>
                             </div>
                           </div>
-                        </div>
-
+                        </FieldGroup>
                         <div className="flex items-center gap-2 px-1">
                           <FaShieldAlt className="text-orange-400 text-sm flex-shrink-0" />
                           <p className="text-xs text-gray-500 dark:text-gray-400">We only use your card number to identify the linked bank account. No charges are made to this card.</p>
@@ -1013,154 +954,197 @@ const Transfer = () => {
                 </motion.div>
               )}
 
-              {/* ── TRANSFER SECTION ── */}
+              {/* ════════════════════════════════════════
+                  TRANSFER TAB
+              ════════════════════════════════════════ */}
               {activeTab === 'transfer' && (
-                <AnimatePresence>
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Bank</label>
-                      <div className="relative">
-                        <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <select name="recipientBank" required value={formData.recipientBank} onChange={handleChange} disabled={recipientVerified}
-                          className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : 'border-gray-300 dark:border-gray-600'}`}>
-                          <option value="">Select recipient bank</option>
-                          {nigerianBanks.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
-                        </select>
-                      </div>
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                  {/* Recipient Bank */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Bank</label>
+                    <div className="relative">
+                      <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <select name="recipientBank" value={form.recipientBank} onChange={onFormChange}
+                        disabled={recipientVerified} required
+                        className={`w-full pl-10 pr-3 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                          recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-gray-200' : 'border-gray-300 dark:border-gray-600 bg-white'
+                        }`}>
+                        <option value="">Select recipient bank</option>
+                        {NIGERIAN_BANKS.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
+                      </select>
                     </div>
+                  </div>
 
-                    {formData.recipientBank === 'OTHER' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter Bank Name</label>
-                        <input type="text" name="recipientCustomBank" required value={formData.recipientCustomBank} onChange={handleChange} disabled={recipientVerified}
-                          className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : 'border-gray-300 dark:border-gray-600'}`}
-                          placeholder="Enter your bank name" />
-                      </div>
-                    )}
-
+                  {/* Custom bank name */}
+                  {form.recipientBank === 'OTHER' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Account Number</label>
-                      <div className="relative">
-                        <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="text" name="recipientAccount" required value={formData.recipientAccount} onChange={handleChange} disabled={recipientVerified}
-                          className={`w-full pl-10 pr-24 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-green-500' : 'border-gray-300 dark:border-gray-600'}`}
-                          placeholder="Enter 10-digit account number" maxLength="10" />
-                        {!recipientVerified && (
-                          <button type="button" onClick={handleVerifyAccount} disabled={verifyingAccount || !formData.recipientAccount || !formData.recipientBank}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all">
-                            {verifyingAccount ? <FaSpinner className="animate-spin" /> : <><FaSearch className="inline mr-1" />Verify</>}
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter Bank Name</label>
+                      <input type="text" name="recipientCustomBank" value={form.recipientCustomBank}
+                        onChange={onFormChange} disabled={recipientVerified} required
+                        placeholder="Enter your bank name"
+                        className={`w-full px-3 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${
+                          recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-gray-200' : 'border-gray-300 dark:border-gray-600 bg-white'
+                        }`} />
+                    </div>
+                  )}
+
+                  {/* Account number + Verify */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Account Number</label>
+                    <div className="relative">
+                      <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input type="text" name="recipientAccount" value={form.recipientAccount}
+                        onChange={onFormChange} disabled={recipientVerified} required
+                        placeholder="Enter 10-digit account number" maxLength="10"
+                        className={`w-full pl-10 pr-28 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${
+                          recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-green-400' : 'border-gray-300 dark:border-gray-600 bg-white'
+                        }`} />
+                      {!recipientVerified ? (
+                        <button type="button" onClick={handleVerifyAccount}
+                          disabled={verifyingAccount || !form.recipientAccount || !form.recipientBank}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1">
+                          {verifyingAccount ? <FaSpinner className="animate-spin text-xs" /> : <><FaSearch className="text-xs" /> Verify</>}
+                        </button>
+                      ) : (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                          <FaCheckCircle className="text-green-500 text-lg" />
+                          <button type="button"
+                            onClick={() => { setRecipientVerified(false); setRecipientName(''); setIsInternalTransfer(false); }}
+                            className="text-xs text-gray-400 hover:text-red-500 underline transition-colors">
+                            Change
                           </button>
-                        )}
-                        {recipientVerified && <FaCheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xl" />}
-                      </div>
-                    </div>
-
-                    {recipientVerified && recipientName && (
-                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                        className={`p-4 rounded-xl border ${isInternalTransfer ? 'bg-green-50 dark:bg-green-900/20 border-green-200' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200'}`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isInternalTransfer ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
-                            {isInternalTransfer ? <FaUser /> : <FaExchangeAlt />}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-gray-500">
-                              {isInternalTransfer ? 'Vaultix Account Holder' : 'External Account'}
-                              {!isInternalTransfer && <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] rounded-full">External Transfer</span>}
-                            </p>
-                            <p className="text-lg font-bold text-gray-900 dark:text-white">{recipientName}</p>
-                            <p className="text-xs text-gray-500">Account: {formData.recipientAccount} • Bank: {getSelectedBankName()}</p>
-                          </div>
                         </div>
-                        {!isInternalTransfer && <p className="mt-3 text-xs text-gray-500 border-t pt-3">⚡ External transfers may take up to 5 minutes to process.</p>}
-                      </motion.div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Verified recipient card */}
+                  {recipientVerified && recipientName && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                      className={`p-4 rounded-xl border ${isInternalTransfer
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          isInternalTransfer ? 'bg-green-100 dark:bg-green-900/50 text-green-600' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-600'
+                        }`}>
+                          {isInternalTransfer ? <FaUser /> : <FaExchangeAlt />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {isInternalTransfer ? 'Vaultix Account Holder' : 'External Account'}
+                            </p>
+                            {!isInternalTransfer && (
+                              <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 text-[10px] font-semibold rounded-full">
+                                External Transfer
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">{recipientName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {form.recipientAccount} · {getBankName(form.recipientBank)}
+                          </p>
+                        </div>
+                      </div>
+                      {!isInternalTransfer && (
+                        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3">
+                          ⚡ External transfers may take up to 5 minutes to process.
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </motion.div>
               )}
 
-              {/* Amount Field */}
+              {/* ════════════════════════════════════════
+                  AMOUNT (shared)
+              ════════════════════════════════════════ */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount (₦)</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₦</span>
-                  <input type="number" name="amount" required min="1" max={getMaxAmount()} step="1" value={formData.amount} onChange={handleChange}
-                    className="w-full pl-8 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="0.00" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₦</span>
+                  <input type="number" name="amount" value={form.amount} onChange={onFormChange}
+                    required min="1" max={getMaxAmount()} step="1" placeholder="0"
+                    className="w-full pl-8 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-lg font-semibold" />
                 </div>
-                {formData.amount && (
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Amount: <span className="font-semibold">{formatCurrency(formData.amount)}</span></p>
+                {form.amount && Number(form.amount) > 0 && (
+                  <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-400">
+                    = <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(form.amount)}</span>
+                  </p>
                 )}
                 {(activeTab === 'transfer' || activeTab === 'withdraw') && (
-                  <p className="mt-1 text-xs text-gray-500">Available Balance: <span className="font-semibold">{formatCurrency(user?.balance || 0)}</span></p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Available: <span className="font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(user?.balance || 0)}</span>
+                  </p>
                 )}
               </div>
 
-              {/* Quick Amount Buttons */}
+              {/* Quick amount buttons */}
               <div className="grid grid-cols-4 gap-2">
-                {quickAmounts[activeTab]?.map((quickAmount) => (
-                  <button key={quickAmount} type="button" onClick={() => setFormData({ ...formData, amount: quickAmount.toString() })}
-                    className="py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    ₦{quickAmount.toLocaleString()}
+                {QUICK_AMOUNTS[activeTab]?.map(q => (
+                  <button key={q} type="button"
+                    onClick={() => setForm(p => ({ ...p, amount: q.toString() }))}
+                    className={`py-2 border rounded-xl text-sm font-medium transition-all ${
+                      form.amount === q.toString()
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}>
+                    ₦{q.toLocaleString()}
                   </button>
                 ))}
               </div>
 
-              {/* Description Field */}
+              {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (Optional)</label>
-                <textarea name="description" value={formData.description} onChange={handleChange} rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white resize-none"
-                  placeholder="Add a note..." maxLength="200" />
-                <p className="mt-1 text-xs text-gray-500">{formData.description.length}/200 characters</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea name="description" value={form.description} onChange={onFormChange}
+                  rows="2" maxLength="200" placeholder="Add a note…"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white resize-none text-sm" />
+                <p className="mt-1 text-xs text-gray-400">{form.description.length}/200</p>
               </div>
 
-              {/* Info Box */}
-              <div className={`p-4 rounded-xl border ${
-                activeTab === 'deposit' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200' :
-                activeTab === 'withdraw' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200' :
-                'bg-purple-50 dark:bg-purple-900/20 border-purple-200'
+              {/* Info box */}
+              <div className={`p-3.5 rounded-xl border text-sm ${
+                activeTab === 'deposit'  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200' :
+                activeTab === 'withdraw' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200' :
+                                          'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-200'
               }`}>
-                <p className={`text-sm ${
-                  activeTab === 'deposit' ? 'text-blue-800 dark:text-blue-200' :
-                  activeTab === 'withdraw' ? 'text-orange-800 dark:text-orange-200' :
-                  'text-purple-800 dark:text-purple-200'
-                }`}>
-                  {activeTab === 'deposit' && '💡 Demo Mode: Simulated deposit. Funds added instantly to your account.'}
-                  {activeTab === 'withdraw' && '💡 Withdrawals are processed within minutes to your selected destination.'}
-                  {activeTab === 'transfer' && '💡 Vaultix transfers are FREE & INSTANT. External transfers take up to 5 minutes.'}
-                </p>
+                {activeTab === 'deposit'  && '💡 Demo Mode: Simulated deposit. Funds added instantly to your account.'}
+                {activeTab === 'withdraw' && '💡 Withdrawals are processed within minutes to your selected destination.'}
+                {activeTab === 'transfer' && '💡 Vaultix transfers are FREE & INSTANT. External transfers take up to 5 minutes.'}
               </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
+              {/* Submit button */}
+              <button type="submit"
                 disabled={loading || (activeTab === 'transfer' && !recipientVerified)}
-                className={`w-full py-3 bg-gradient-to-r ${currentTab?.color || 'from-indigo-600 to-blue-600'} text-white rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
+                className={`w-full py-3.5 bg-gradient-to-r ${currentTab?.color || 'from-indigo-600 to-blue-600'} text-white rounded-xl font-semibold text-base hover:opacity-90 active:scale-[0.99] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}>
                 {loading ? (
-                  <div className="flex items-center justify-center">
-                    <FaSpinner className="animate-spin mr-2" />
-                    Processing...
-                  </div>
+                  <span className="flex items-center justify-center gap-2">
+                    <FaSpinner className="animate-spin" /> Processing…
+                  </span>
                 ) : (
                   <>
                     {activeTab === 'transfer' && (
                       recipientVerified
-                        ? `Send ${formData.amount ? formatCurrency(formData.amount) : ''} to ${recipientName?.split(' ')[0] || 'Recipient'}`
+                        ? `Send ${form.amount ? formatCurrency(form.amount) : ''} to ${recipientName?.split(' ')[0] || 'Recipient'}`
                         : 'Verify Account to Send'
                     )}
-                    {activeTab === 'deposit' && `Deposit ${formData.amount ? formatCurrency(formData.amount) : 'Funds'}`}
-                    {activeTab === 'withdraw' && `Withdraw ${formData.amount ? formatCurrency(formData.amount) : 'Funds'}`}
+                    {activeTab === 'deposit'  && `Deposit ${form.amount ? formatCurrency(form.amount) : 'Funds'}`}
+                    {activeTab === 'withdraw' && `Withdraw ${form.amount ? formatCurrency(form.amount) : 'Funds'}`}
                   </>
                 )}
               </button>
             </form>
 
-            {/* PIN Status Warning */}
+            {/* PIN warning */}
             {!hasPin && (
-              <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200">
+              <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
                 <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                  ⚠️ You haven't set a transaction PIN yet.
-                  <button type="button" onClick={() => setShowPinSetupModal(true)} className="ml-2 font-semibold underline">Set PIN Now</button>
+                  ⚠️ You haven't set a transaction PIN yet.{' '}
+                  <button type="button" onClick={() => setShowPinSetupModal(true)} className="font-semibold underline">
+                    Set PIN Now
+                  </button>
                 </p>
               </div>
             )}
@@ -1168,22 +1152,31 @@ const Transfer = () => {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       <PinVerificationModal
         isOpen={showPinModal}
         onClose={() => { setShowPinModal(false); setPendingTransaction(null); }}
         onVerify={handlePinVerified}
         title={
-          activeTab === 'transfer'
-            ? `Confirm Transfer${recipientName ? ` to ${recipientName.split(' ')[0]}` : ''}`
-            : activeTab === 'deposit' ? 'Confirm Deposit' : 'Confirm Withdrawal'
+          activeTab === 'transfer' ? `Confirm Transfer${recipientName ? ` to ${recipientName.split(' ')[0]}` : ''}` :
+          activeTab === 'deposit'  ? 'Confirm Deposit' : 'Confirm Withdrawal'
         }
       />
+
       <PinSetupModal
         isOpen={showPinSetupModal}
         onClose={() => setShowPinSetupModal(false)}
-        onSuccess={handlePinSetupSuccess}
+        onSuccess={() => { setHasPin(true); toast.success('PIN set! You can now make transactions.'); }}
       />
+
+      {/* ── Receipt ── */}
+      {showReceipt && receiptData && (
+        <TransactionReceipt
+          transaction={receiptData}
+          user={user}
+          onClose={handleReceiptClose}
+        />
+      )}
     </>
   );
 };
