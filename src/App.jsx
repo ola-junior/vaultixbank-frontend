@@ -20,6 +20,7 @@ import Notifications from './pages/Notifications';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BillsPage from './pages/BillsPage'; // ✅ Added Bills page
+import BillsIndex from './pages/BillsIndex'; 
 
 // Components
 import Navbar from './components/Layout/Navbar';
@@ -144,6 +145,7 @@ function App() {
               <AppLayout><Transfer /></AppLayout>
             </ProtectedRoute>
           } />
+            <Route path="/bills" element={<ProtectedRoute><AppLayout><BillsIndex /></AppLayout></ProtectedRoute>} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <AppLayout><Profile /></AppLayout>

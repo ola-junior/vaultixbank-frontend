@@ -221,6 +221,7 @@ const Security = () => {
     });
   };
 
+  // ✅ FIXED: Password Submit Function with confirmNewPassword
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
@@ -234,16 +235,28 @@ const Security = () => {
       return;
     }
     
+    const hasUpperCase = /[A-Z]/.test(passwordForm.newPassword);
+    const hasLowerCase = /[a-z]/.test(passwordForm.newPassword);
+    const hasNumbers = /\d/.test(passwordForm.newPassword);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(passwordForm.newPassword);
+    
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      toast.error('Password must contain uppercase, lowercase, number, and special character');
+      return;
+    }
+    
     setLoading(true);
     try {
       await api.put('/user/change-password', {
         currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
+        newPassword: passwordForm.newPassword,
+        confirmNewPassword: passwordForm.confirmPassword  // ✅ ADDED
       });
       toast.success('Password changed successfully!');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to change password');
+      console.error('Password change error:', error.response?.data);
     } finally {
       setLoading(false);
     }
