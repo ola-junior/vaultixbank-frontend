@@ -1,165 +1,508 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   FaPaperPlane, FaDownload, FaUpload, FaMobileAlt,
   FaWifi, FaTv, FaGamepad, FaHandHoldingUsd,
-  FaShoppingCart, FaUtensils, FaBolt, FaWater,
+  FaShoppingCart, FaBolt, FaWater,
   FaGraduationCap, FaPlane, FaHospital, FaEllipsisH,
   FaTimes, FaCreditCard, FaTicketAlt, FaMoneyBillWave,
-  FaChevronRight, FaExchangeAlt, FaHistory
+  FaChevronRight, FaHistory, FaCheckCircle,
 } from 'react-icons/fa';
 import { MdSportsSoccer, MdLocalGroceryStore, MdOutlineChildCare } from 'react-icons/md';
 import { GiTakeMyMoney } from 'react-icons/gi';
 
-// Service definitions
+// ─── Service definitions ────────────────────────────────────────────────────
 const ALL_SERVICES = [
-  // Row 1 — always visible
-  { id: 'airtime', label: 'Airtime', icon: FaMobileAlt, gradient: 'linear-gradient(135deg, #6366f1, #8b5cf6)', shadow: 'rgba(99,102,241,0.35)', route: '/bills/airtime', color: '#8b5cf6' },
-  { id: 'data', label: 'Data', icon: FaWifi, gradient: 'linear-gradient(135deg, #3b82f6, #06b6d4)', shadow: 'rgba(59,130,246,0.35)', route: '/bills/data', color: '#3b82f6' },
-  { id: 'betting', label: 'Betting', icon: MdSportsSoccer, gradient: 'linear-gradient(135deg, #10b981, #059669)', shadow: 'rgba(16,185,129,0.35)', route: '/bills/betting', color: '#10b981' },
-  { id: 'tv', label: 'TV', icon: FaTv, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', shadow: 'rgba(245,158,11,0.35)', route: '/bills/tv', color: '#f59e0b' },
-  // Row 2 — always visible
-  { id: 'gwealth', label: 'GWealth', icon: FaMoneyBillWave, gradient: 'linear-gradient(135deg, #ec4899, #db2777)', shadow: 'rgba(236,72,153,0.35)', route: '/savings', color: '#ec4899' },
-  { id: 'loan', label: 'Loan', icon: GiTakeMyMoney, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', shadow: 'rgba(249,115,22,0.35)', route: '/loans', color: '#f97316' },
-  { id: 'play4achild', label: 'Play4aChild', icon: MdOutlineChildCare, gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)', shadow: 'rgba(20,184,166,0.35)', route: '/play4achild', color: '#14b8a6' },
-  { id: 'history', label: 'History', icon: FaHistory, gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', shadow: 'rgba(139,92,246,0.35)', route: '/transactions', color: '#8b5cf6' },
-  // More button
-  { id: 'more', label: 'More', icon: FaEllipsisH, gradient: 'linear-gradient(135deg, #64748b, #475569)', shadow: 'rgba(100,116,139,0.35)', route: null, color: '#64748b', isMore: true },
-  // Extra services
-  { id: 'electricity', label: 'Electricity', icon: FaBolt, gradient: 'linear-gradient(135deg, #eab308, #ca8a04)', shadow: 'rgba(234,179,8,0.35)', route: '/bills/electricity', color: '#eab308' },
-  { id: 'water', label: 'Water', icon: FaWater, gradient: 'linear-gradient(135deg, #06b6d4, #0284c7)', shadow: 'rgba(6,182,212,0.35)', route: '/bills/water', color: '#06b6d4' },
-  { id: 'education', label: 'Education', icon: FaGraduationCap, gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', shadow: 'rgba(139,92,246,0.35)', route: '/bills/education', color: '#8b5cf6' },
-  { id: 'flights', label: 'Flights', icon: FaPlane, gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', shadow: 'rgba(59,130,246,0.35)', route: '/bills/flights', color: '#3b82f6' },
-  { id: 'insurance', label: 'Insurance', icon: FaHospital, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', shadow: 'rgba(239,68,68,0.35)', route: '/bills/insurance', color: '#ef4444' },
-  { id: 'shopping', label: 'Shopping', icon: MdLocalGroceryStore, gradient: 'linear-gradient(135deg, #10b981, #047857)', shadow: 'rgba(16,185,129,0.35)', route: '/bills/shopping', color: '#10b981' },
-  { id: 'gaming', label: 'Gaming', icon: FaGamepad, gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)', shadow: 'rgba(168,85,247,0.35)', route: '/bills/gaming', color: '#a855f7' },
-  { id: 'events', label: 'Events', icon: FaTicketAlt, gradient: 'linear-gradient(135deg, #f43f5e, #e11d48)', shadow: 'rgba(244,63,94,0.35)', route: '/bills/events', color: '#f43f5e' },
+  { id: 'airtime',     label: 'Airtime',      icon: FaMobileAlt,         gradient: ['#6366f1','#8b5cf6'], route: '/bills/airtime',     category: 'telecom' },
+  { id: 'data',        label: 'Data',          icon: FaWifi,              gradient: ['#3b82f6','#0ea5e9'], route: '/bills/data',         category: 'telecom' },
+  { id: 'betting',     label: 'Betting',       icon: MdSportsSoccer,      gradient: ['#10b981','#059669'], route: '/bills/betting',      category: 'lifestyle' },
+  { id: 'tv',          label: 'Cable TV',      icon: FaTv,                gradient: ['#f59e0b','#d97706'], route: '/bills/tv',           category: 'utility' },
+  { id: 'gwealth',     label: 'GWealth',       icon: FaMoneyBillWave,     gradient: ['#ec4899','#db2777'], route: '/savings',            category: 'finance' },
+  { id: 'loan',        label: 'Loan',          icon: GiTakeMyMoney,       gradient: ['#f97316','#ea580c'], route: '/loans',              category: 'finance' },
+  { id: 'play4achild', label: 'Play4Child',    icon: MdOutlineChildCare,  gradient: ['#14b8a6','#0d9488'], route: '/play4achild',        category: 'lifestyle' },
+  { id: 'history',     label: 'History',       icon: FaHistory,           gradient: ['#8b5cf6','#6d28d9'], route: '/transactions',       category: 'finance' },
+  // Extra
+  { id: 'electricity', label: 'Electricity',  icon: FaBolt,              gradient: ['#eab308','#ca8a04'], route: '/bills/electricity',  category: 'utility' },
+  { id: 'water',       label: 'Water',         icon: FaWater,             gradient: ['#06b6d4','#0284c7'], route: '/bills/water',        category: 'utility' },
+  { id: 'education',   label: 'Education',     icon: FaGraduationCap,     gradient: ['#8b5cf6','#6d28d9'], route: '/bills/education',    category: 'lifestyle' },
+  { id: 'flights',     label: 'Flights',       icon: FaPlane,             gradient: ['#3b82f6','#1d4ed8'], route: '/bills/flights',      category: 'lifestyle' },
+  { id: 'insurance',   label: 'Insurance',     icon: FaHospital,          gradient: ['#ef4444','#dc2626'], route: '/bills/insurance',    category: 'finance' },
+  { id: 'shopping',    label: 'Shopping',      icon: MdLocalGroceryStore, gradient: ['#10b981','#047857'], route: '/bills/shopping',     category: 'lifestyle' },
+  { id: 'gaming',      label: 'Gaming',        icon: FaGamepad,           gradient: ['#a855f7','#7c3aed'], route: '/bills/gaming',       category: 'lifestyle' },
+  { id: 'events',      label: 'Events',        icon: FaTicketAlt,         gradient: ['#f43f5e','#e11d48'], route: '/bills/events',       category: 'lifestyle' },
 ];
 
-const VISIBLE_SERVICES = ALL_SERVICES.slice(0, 7);
-const EXTRA_SERVICES = ALL_SERVICES.slice(9);
-const MORE_BTN = ALL_SERVICES.find(s => s.isMore);
+const LIVE_ROUTES = new Set(['/transfer', '/transactions', '/bills/airtime', '/bills/data']);
 
-// Service Tile Component
-const ServiceTile = ({ service, onClick, compact = false }) => {
-  const [pressed, setPressed] = useState(false);
+const QUICK_ACTIONS = [
+  { label: 'Send',     icon: FaPaperPlane, gradient: ['#6366f1','#818cf8'], action: (nav) => nav('/transfer', { state: { action: 'transfer' } }) },
+  { label: 'Receive',  icon: FaDownload,   gradient: ['#10b981','#34d399'], action: () => toast('Share your account number to receive.', { icon: '📋', duration: 4000 }) },
+  { label: 'Deposit',  icon: FaCreditCard, gradient: ['#3b82f6','#38bdf8'], action: (nav) => nav('/transfer', { state: { action: 'deposit' } }) },
+  { label: 'Withdraw', icon: FaUpload,     gradient: ['#f97316','#fb923c'], action: (nav) => nav('/transfer', { state: { action: 'withdraw' } }) },
+];
+
+const VISIBLE = ALL_SERVICES.slice(0, 7);
+const EXTRA   = ALL_SERVICES.slice(8);
+
+// ─── Pill icon tile (used in main grid) ─────────────────────────────────────
+const Tile = ({ service, onPress, compact = false }) => {
+  const [active, setActive] = useState(false);
   const Icon = service.icon;
-  const size = compact ? 36 : 44;
+  const sz = compact ? 40 : 48;
+  const [c1, c2] = service.gradient;
 
   return (
     <motion.button
       type="button"
-      whileHover={{ y: -3, scale: 1.04 }}
-      whileTap={{ scale: 0.93 }}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onMouseLeave={() => setPressed(false)}
-      onClick={() => onClick(service)}
-      className="flex flex-col items-center gap-2 group focus:outline-none"
+      whileHover={{ y: -2, scale: 1.06 }}
+      whileTap={{ scale: 0.88 }}
+      onPointerDown={() => setActive(true)}
+      onPointerUp={() => setActive(false)}
+      onPointerLeave={() => setActive(false)}
+      onClick={() => onPress(service)}
+      className="flex flex-col items-center gap-[7px] focus:outline-none min-w-0"
+      aria-label={service.label}
     >
+      {/* Icon bubble */}
       <div
         style={{
-          width: size + 8, height: size + 8, borderRadius: 18,
-          background: service.gradient,
-          boxShadow: pressed ? `0 2px 8px ${service.shadow}` : `0 6px 18px ${service.shadow}`,
+          width: sz, height: sz,
+          borderRadius: sz * 0.38,
+          background: `linear-gradient(145deg, ${c1}, ${c2})`,
+          boxShadow: active
+            ? `0 2px 6px ${c1}50`
+            : `0 5px 16px ${c1}45, inset 0 1px 0 rgba(255,255,255,0.22)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'box-shadow 0.2s', position: 'relative', overflow: 'hidden',
+          transition: 'box-shadow 0.18s ease',
+          position: 'relative', overflow: 'hidden', flexShrink: 0,
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'rgba(255,255,255,0.15)', borderRadius: '18px 18px 50% 50%', pointerEvents: 'none' }} />
-        <Icon style={{ color: '#fff', fontSize: compact ? 16 : 20, position: 'relative' }} />
+        {/* Sheen */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 55%)',
+          pointerEvents: 'none', borderRadius: 'inherit',
+        }} />
+        <Icon style={{ color: '#fff', fontSize: compact ? 15 : 19, position: 'relative', zIndex: 1 }} />
       </div>
-      <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors text-center leading-tight max-w-[56px]">
+      <span className="text-[10.5px] font-semibold text-gray-500 dark:text-gray-400 text-center leading-tight w-full truncate px-0.5"
+        style={{ letterSpacing: '0.01em' }}>
         {service.label}
       </span>
     </motion.button>
   );
 };
 
-// More Modal Component
-const MoreModal = ({ isOpen, onClose, onSelect }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-        <motion.div initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }} className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto">
-          <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" /></div>
-          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-700">
-            <div><h3 className="text-base font-bold text-gray-900 dark:text-white">All Services</h3><p className="text-xs text-gray-500 dark:text-gray-400">Pay bills, buy services & more</p></div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"><FaTimes className="text-xs" /></button>
-          </div>
-          <div className="p-5 grid grid-cols-4 gap-y-6 gap-x-2">
-            {EXTRA_SERVICES.map((svc, i) => (
-              <motion.div key={svc.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="flex justify-center">
-                <ServiceTile service={svc} onClick={onSelect} compact />
-              </motion.div>
-            ))}
-          </div>
-          <div className="h-6" />
-        </motion.div>
-      </>
-    )}
-  </AnimatePresence>
-);
+// ─── Big action card ─────────────────────────────────────────────────────────
+const ActionCard = ({ btn, navigate }) => {
+  const [ripple, setRipple] = useState(null);
+  const Icon = btn.icon;
+  const [c1, c2] = btn.gradient;
 
-// Live routes that actually work
-const LIVE_ROUTES = ['/transfer', '/transactions', '/bills/airtime', '/bills/data'];
+  const handleClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setTimeout(() => setRipple(null), 500);
+    btn.action(navigate);
+  };
 
-const handleServiceClick = (service, navigate, setMoreOpen) => {
-  if (service.isMore) { setMoreOpen(true); return; }
-  if (!service.route) { toast('Coming soon!', { icon: '🚀' }); return; }
-  if (LIVE_ROUTES.includes(service.route)) { navigate(service.route); }
-  else { toast(`${service.label} — Coming soon!`, { icon: '🚀', style: { background: '#1e293b', color: '#f1f5f9', borderRadius: '12px' } }); }
+  return (
+    <motion.button
+      type="button"
+      whileHover={{ y: -3, scale: 1.03 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={handleClick}
+      className="relative flex flex-col items-center gap-2.5 focus:outline-none overflow-hidden"
+      style={{
+        borderRadius: 20,
+        padding: '14px 8px 12px',
+        background: `linear-gradient(148deg, ${c1}18, ${c2}10)`,
+        border: `1.5px solid ${c1}30`,
+        flex: 1,
+        minWidth: 0,
+        cursor: 'pointer',
+      }}
+    >
+      {/* Ripple */}
+      <AnimatePresence>
+        {ripple && (
+          <motion.span
+            initial={{ scale: 0, opacity: 0.5 }}
+            animate={{ scale: 8, opacity: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: 'absolute',
+              left: ripple.x, top: ripple.y,
+              width: 20, height: 20,
+              borderRadius: '50%',
+              background: c1,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Icon */}
+      <div
+        style={{
+          width: 46, height: 46, borderRadius: 15,
+          background: `linear-gradient(145deg, ${c1}, ${c2})`,
+          boxShadow: `0 6px 20px ${c1}50, inset 0 1px 0 rgba(255,255,255,0.2)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative', overflow: 'hidden', zIndex: 1,
+        }}
+      >
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.3) 0%, transparent 50%)',
+          borderRadius: 'inherit', pointerEvents: 'none',
+        }} />
+        <Icon style={{ color: '#fff', fontSize: 18, position: 'relative', zIndex: 1 }} />
+      </div>
+
+      <span
+        className="text-[12px] font-bold text-gray-700 dark:text-gray-200 relative z-10"
+        style={{ letterSpacing: '-0.01em' }}
+      >
+        {btn.label}
+      </span>
+    </motion.button>
+  );
 };
 
-// Main QuickActions Component
+// ─── Category filter pill ────────────────────────────────────────────────────
+const CATEGORIES = ['all', 'telecom', 'utility', 'finance', 'lifestyle'];
+const CAT_LABELS  = { all: 'All', telecom: 'Telecom', utility: 'Utility', finance: 'Finance', lifestyle: 'Lifestyle' };
+
+// ─── Bottom sheet modal ──────────────────────────────────────────────────────
+const MoreModal = ({ isOpen, onClose, onSelect }) => {
+  const [cat, setCat] = useState('all');
+  const filtered = cat === 'all' ? EXTRA : EXTRA.filter(s => s.category === cat);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40"
+            style={{ background: 'rgba(2,6,23,0.7)', backdropFilter: 'blur(6px)' }}
+          />
+
+          {/* Sheet */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 overflow-hidden"
+            style={{ borderRadius: '28px 28px 0 0', maxHeight: '86vh' }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3">
+              <div className="w-9 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white" style={{ letterSpacing: '-0.02em' }}>
+                  All Services
+                </h3>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                  {EXTRA.length} services available
+                </p>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={onClose}
+                className="w-8 h-8 rounded-full flex items-center justify-center focus:outline-none"
+                style={{ background: 'rgba(148,163,184,0.12)', border: '1px solid rgba(148,163,184,0.2)' }}
+              >
+                <FaTimes className="text-gray-500 dark:text-gray-400" style={{ fontSize: 11 }} />
+              </motion.button>
+            </div>
+
+            {/* Category filter */}
+            <div className="flex gap-2 px-5 pb-4 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none' }}>
+              {CATEGORIES.map(c => (
+                <motion.button
+                  key={c}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => setCat(c)}
+                  className="flex-shrink-0 text-[11px] font-semibold focus:outline-none transition-colors duration-150"
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 999,
+                    background: cat === c ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(148,163,184,0.1)',
+                    color: cat === c ? '#fff' : 'var(--color-text-secondary, #64748b)',
+                    border: cat === c ? 'none' : '1px solid rgba(148,163,184,0.18)',
+                    letterSpacing: '0.01em',
+                    boxShadow: cat === c ? '0 4px 12px rgba(99,102,241,0.35)' : 'none',
+                  }}
+                >
+                  {CAT_LABELS[c]}
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Grid */}
+            <div
+              className="px-5 overflow-y-auto pb-10"
+              style={{ maxHeight: 'calc(86vh - 160px)', scrollbarWidth: 'none' }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={cat}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18 }}
+                  className="grid grid-cols-4 gap-x-2 gap-y-6"
+                >
+                  {filtered.map((svc, i) => (
+                    <motion.div
+                      key={svc.id}
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.032 }}
+                      className="flex justify-center"
+                    >
+                      <Tile
+                        service={svc}
+                        onPress={(s) => { onClose(); onSelect(s); }}
+                        compact
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+
+              {filtered.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+                    <FaEllipsisH className="text-gray-400" style={{ fontSize: 16 }} />
+                  </div>
+                  <p className="text-sm text-gray-400">No services in this category</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// ─── Main component ──────────────────────────────────────────────────────────
 const QuickActions = () => {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
-  const onClick = (service) => handleServiceClick(service, navigate, setMoreOpen);
+
+  const handleService = (service) => {
+    if (!service.route) { toast('Coming soon!', { icon: '🚀' }); return; }
+    if (LIVE_ROUTES.has(service.route)) {
+      navigate(service.route);
+    } else {
+      toast(`${service.label} — Coming soon!`, {
+        icon: '🚀',
+        style: {
+          background: '#1e293b', color: '#f1f5f9',
+          borderRadius: '14px', fontWeight: 600, fontSize: 13,
+        },
+      });
+    }
+  };
 
   return (
     <>
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-white tracking-tight">Quick Actions</h2>
-          <button onClick={() => setMoreOpen(true)} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors">
-            See all <FaChevronRight className="text-[9px]" />
-          </button>
-        </div>
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        className="bg-white dark:bg-gray-900 overflow-hidden"
+        style={{
+          borderRadius: 24,
+          border: '1px solid rgba(148,163,184,0.12)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06)',
+        }}
+      >
 
-        {/* Top 4 quick-action buttons */}
-        <div className="grid grid-cols-4 gap-2 px-4 pt-2 pb-4 border-b border-gray-100 dark:border-gray-700">
-          {[
-            { label: 'Send', icon: FaPaperPlane, gradient: 'linear-gradient(135deg,#6366f1,#8b5cf6)', shadow: 'rgba(99,102,241,0.35)', action: () => navigate('/transfer', { state: { action: 'transfer' } }) },
-            { label: 'Receive', icon: FaDownload, gradient: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.35)', action: () => toast('Share your account number to receive money.', { icon: '📋', duration: 4000 }) },
-            { label: 'Deposit', icon: FaCreditCard, gradient: 'linear-gradient(135deg,#3b82f6,#06b6d4)', shadow: 'rgba(59,130,246,0.35)', action: () => navigate('/transfer', { state: { action: 'deposit' } }) },
-            { label: 'Withdraw', icon: FaUpload, gradient: 'linear-gradient(135deg,#f97316,#ef4444)', shadow: 'rgba(249,115,22,0.35)', action: () => navigate('/transfer', { state: { action: 'withdraw' } }) },
-          ].map((btn) => (
-            <motion.button key={btn.label} type="button" whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.92 }} onClick={btn.action} className="flex flex-col items-center gap-2 focus:outline-none">
-              <div style={{ width: 48, height: 48, borderRadius: 16, background: btn.gradient, boxShadow: `0 6px 18px ${btn.shadow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'rgba(255,255,255,0.15)', borderRadius: '16px 16px 50% 50%', pointerEvents: 'none' }} />
-                <btn.icon style={{ color: '#fff', fontSize: 18, position: 'relative' }} />
-              </div>
-              <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">{btn.label}</span>
+        {/* ── Send / Receive / Deposit / Withdraw ── */}
+        <div className="px-4 pt-5 pb-2">
+          <div className="flex items-center justify-between mb-4">
+            <span
+              className="text-[13px] font-bold text-gray-800 dark:text-white"
+              style={{ letterSpacing: '-0.02em' }}
+            >
+              Quick Actions
+            </span>
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setMoreOpen(true)}
+              className="flex items-center gap-1 text-[11.5px] font-semibold text-indigo-500 dark:text-indigo-400 focus:outline-none"
+            >
+              See all <FaChevronRight style={{ fontSize: 8 }} />
             </motion.button>
-          ))}
-        </div>
+          </div>
 
-        {/* Bills & Services grid */}
-        <div className="px-4 pt-4 pb-5">
-          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">Bills & Services</p>
-          <div className="grid grid-cols-4 gap-y-5 gap-x-1">
-            {VISIBLE_SERVICES.map(svc => <div key={svc.id} className="flex justify-center"><ServiceTile service={svc} onClick={onClick} /></div>)}
-            <div className="flex justify-center"><ServiceTile service={MORE_BTN} onClick={onClick} /></div>
+          <div className="flex gap-2.5">
+            {QUICK_ACTIONS.map((btn) => (
+              <ActionCard key={btn.label} btn={btn} navigate={navigate} />
+            ))}
           </div>
         </div>
+
+        {/* ── Divider with label ── */}
+        <div className="flex items-center gap-3 px-5 mt-4 mb-0">
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.12em] whitespace-nowrap">
+            Bills & Services
+          </span>
+          <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+        </div>
+
+        {/* ── Services grid ── */}
+        <div className="px-4 pt-4 pb-5">
+          <div className="grid grid-cols-4 gap-y-5 gap-x-1">
+            {VISIBLE.map((svc, i) => (
+              <motion.div
+                key={svc.id}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.04 + i * 0.03, type: 'spring', stiffness: 400, damping: 22 }}
+                className="flex justify-center"
+              >
+                <Tile service={svc} onPress={handleService} />
+              </motion.div>
+            ))}
+
+            {/* More button */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.04 + 7 * 0.03, type: 'spring', stiffness: 400, damping: 22 }}
+              className="flex justify-center"
+            >
+              <motion.button
+                type="button"
+                whileHover={{ y: -2, scale: 1.06 }}
+                whileTap={{ scale: 0.88 }}
+                onClick={() => setMoreOpen(true)}
+                className="flex flex-col items-center gap-[7px] focus:outline-none"
+              >
+                <div
+                  style={{
+                    width: 48, height: 48,
+                    borderRadius: 18,
+                    background: 'rgba(148,163,184,0.1)',
+                    border: '1.5px dashed rgba(148,163,184,0.45)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative', overflow: 'hidden',
+                  }}
+                >
+                  <div className="flex items-center gap-0.5">
+                    {[0, 1, 2].map(i => (
+                      <motion.div
+                        key={i}
+                        animate={{ scale: [1, 1.35, 1] }}
+                        transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+                        style={{
+                          width: 4, height: 4, borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <span className="text-[10.5px] font-semibold text-gray-500 dark:text-gray-400 text-center leading-tight"
+                  style={{ letterSpacing: '0.01em' }}>
+                  More
+                </span>
+              </motion.button>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* ── Promo strip ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mx-4 mb-4 rounded-2xl overflow-hidden relative"
+          style={{
+            background: 'linear-gradient(125deg, #6366f1 0%, #8b5cf6 45%, #a78bfa 100%)',
+            padding: '14px 16px',
+          }}
+        >
+          {/* Background circles */}
+          <div style={{
+            position: 'absolute', right: -20, top: -20,
+            width: 100, height: 100, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.07)', pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute', right: 30, bottom: -30,
+            width: 80, height: 80, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.05)', pointerEvents: 'none',
+          }} />
+
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'rgba(255,255,255,0.9)',
+                    padding: '2px 8px', borderRadius: 999,
+                  }}
+                >
+                  🎉 Promo
+                </span>
+              </div>
+              <p className="text-white font-bold text-[13.5px] leading-snug" style={{ letterSpacing: '-0.01em' }}>
+                Zero fees on transfers
+              </p>
+              <p className="text-purple-200 text-[11px] mt-0.5">Send money for free this week only</p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => navigate('/transfer', { state: { action: 'transfer' } })}
+              className="flex-shrink-0 flex items-center gap-1.5 focus:outline-none"
+              style={{
+                background: 'rgba(255,255,255,0.18)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                backdropFilter: 'blur(8px)',
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '8px 14px',
+                borderRadius: 12,
+                letterSpacing: '0.01em',
+              }}
+            >
+              Send now <FaChevronRight style={{ fontSize: 8 }} />
+            </motion.button>
+          </div>
+        </motion.div>
+
       </motion.div>
 
-      <MoreModal isOpen={moreOpen} onClose={() => setMoreOpen(false)} onSelect={(svc) => { setMoreOpen(false); handleServiceClick(svc, navigate, setMoreOpen); }} />
+      {/* ── More modal ── */}
+      <MoreModal
+        isOpen={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        onSelect={handleService}
+      />
     </>
   );
 };
