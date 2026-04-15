@@ -19,6 +19,7 @@ import Security from './pages/Security';
 import Notifications from './pages/Notifications';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import BillsPage from './pages/BillsPage'; // ✅ Added Bills page
 
 // Components
 import Navbar from './components/Layout/Navbar';
@@ -76,7 +77,10 @@ const AppLayout = ({ children }) => {
 };
 
 const ToastProvider = () => {
-  const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'));
+  const [isDark, setIsDark] = React.useState(() => 
+    document.documentElement.classList.contains('dark')
+  );
+  
   React.useEffect(() => {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -90,37 +94,90 @@ const ToastProvider = () => {
   }, []);
 
   return (
-    <Toaster position="top-right" toastOptions={{
-      duration: 4000,
-      style: { background: isDark ? '#1f2937' : '#fff', color: isDark ? '#fff' : '#1f2937', borderRadius: '12px', padding: '12px 16px' },
-      success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-      error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-    }} />
+    <Toaster 
+      position="top-right" 
+      toastOptions={{
+        duration: 4000,
+        style: { 
+          background: isDark ? '#1f2937' : '#fff', 
+          color: isDark ? '#fff' : '#1f2937', 
+          borderRadius: '12px', 
+          padding: '12px 16px' 
+        },
+        success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+        error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+      }} 
+    />
   );
 };
 
 function App() {
   React.useMemo(() => initializeDarkMode(), []);
+  
   return (
     <Router>
       <AuthProvider>
         <ToastProvider />
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Landing />} />
-          <Route path="/verify-email/:token" element={<VerifyEmail />} />
-          <Route path="/verify" element={<EmailVerification />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
-          <Route path="/transactions" element={<ProtectedRoute><AppLayout><Transactions /></AppLayout></ProtectedRoute>} />
-          <Route path="/transfer" element={<ProtectedRoute><AppLayout><Transfer /></AppLayout></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><AppLayout><Analytics /></AppLayout></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><AppLayout><Settings /></AppLayout></ProtectedRoute>} />
-          <Route path="/security" element={<ProtectedRoute><AppLayout><Security /></AppLayout></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><AppLayout><Notifications /></AppLayout></ProtectedRoute>} />
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
+          <Route path="/verify" element={<EmailVerification />} />
+          
+          {/* Protected Routes with AppLayout */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <AppLayout><Dashboard /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/transactions" element={
+            <ProtectedRoute>
+              <AppLayout><Transactions /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/transfer" element={
+            <ProtectedRoute>
+              <AppLayout><Transfer /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <AppLayout><Profile /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/analytics" element={
+            <ProtectedRoute>
+              <AppLayout><Analytics /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <AppLayout><Settings /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/security" element={
+            <ProtectedRoute>
+              <AppLayout><Security /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/notifications" element={
+            <ProtectedRoute>
+              <AppLayout><Notifications /></AppLayout>
+            </ProtectedRoute>
+          } />
+          
+          {/* ✅ Bills Routes */}
+          <Route path="/bills/:category" element={
+            <ProtectedRoute>
+              <AppLayout><BillsPage /></AppLayout>
+            </ProtectedRoute>
+          } />
+          
+          {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
