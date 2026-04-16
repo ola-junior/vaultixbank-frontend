@@ -27,21 +27,41 @@ const Loans = () => {
     return amt + interest;
   };
 
-  const handleApply = async () => {
-    if (!selectedPlan) {
-      toast.error('Please select a loan plan');
-      return;
+  // In Loans.jsx, update the handleApply function:
+
+const handleApply = async () => {
+  if (!selectedPlan) {
+    toast.error('Please select a loan plan');
+    return;
+  }
+  if (!amount || Number(amount) < 5000) {
+    toast.error('Minimum loan amount is ₦5,000');
+    return;
+  }
+  if (Number(amount) > selectedPlan.maxAmount) {
+    toast.error(`Maximum loan amount is ${formatCurrency(selectedPlan.maxAmount)}`);
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const res = await api.post('/loans/apply', {
+      planId: selectedPlan.id,
+      amount: Number(amount)
+    });
+    if (res.data.success) {
+      const newBalance = (user?.balance || 0) + Number(amount);
+      updateUser({ ...user, balance: newBalance });
+      toast.success(`✅ Loan approved! ${formatCurrency(amount)} added to your account!`);
+      setAmount('');
+      setSelectedPlan(null);
     }
-    if (!amount || Number(amount) < 5000) {
-      toast.error('Minimum loan amount is ₦5,000');
-      return;
-    }
-    if (Number(amount) > selectedPlan.maxAmount) {
-      toast.error(`Maximum loan amount is ${formatCurrency(selectedPlan.maxAmount)}`);
-      return;
-    }
-    setShowPinModal(true);
-  };
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Loan application failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePinVerified = async (pin) => {
     setShowPinModal(false);

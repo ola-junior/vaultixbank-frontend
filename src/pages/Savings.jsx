@@ -22,21 +22,41 @@ const Savings = () => {
     { id: 'goal', name: 'Goal Save', rate: '15%', minAmount: 50000, color: '#f59e0b', description: 'Target savings', lockPeriod: '180 days' },
   ];
 
-  const handleCreateSavings = async () => {
-    if (!selectedPlan) {
-      toast.error('Please select a savings plan');
-      return;
+// In Savings.jsx, update the handleCreateSavings function:
+
+const handleCreateSavings = async () => {
+  if (!selectedPlan) {
+    toast.error('Please select a savings plan');
+    return;
+  }
+  if (!amount || Number(amount) < selectedPlan.minAmount) {
+    toast.error(`Minimum amount is ${formatCurrency(selectedPlan.minAmount)}`);
+    return;
+  }
+  if (Number(amount) > (user?.balance || 0)) {
+    toast.error('Insufficient balance');
+    return;
+  }
+  
+  // Create savings directly (no PIN modal needed for savings)
+  setLoading(true);
+  try {
+    const res = await api.post('/savings/create', {
+      planId: selectedPlan.id,
+      amount: Number(amount)
+    });
+    if (res.data.success) {
+      updateUser({ ...user, balance: res.data.newBalance });
+      toast.success(`✅ ${formatCurrency(amount)} added to ${selectedPlan.name}!`);
+      setAmount('');
+      setSelectedPlan(null);
     }
-    if (!amount || Number(amount) < selectedPlan.minAmount) {
-      toast.error(`Minimum amount is ${formatCurrency(selectedPlan.minAmount)}`);
-      return;
-    }
-    if (Number(amount) > (user?.balance || 0)) {
-      toast.error('Insufficient balance');
-      return;
-    }
-    setShowPinModal(true);
-  };
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Failed to create savings');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePinVerified = async (pin) => {
     setShowPinModal(false);
