@@ -82,11 +82,11 @@ const TxItem = ({ tx, index, onTap }) => {
       <div
         className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg flex-shrink-0 transition-transform group-hover:scale-105"
         style={{
-          background: `${cat.color}14`,
-          boxShadow: `0 2px 8px ${cat.color}20`,
+          background: cat && cat.color ? `${cat.color}14` : '#6366f114',
+          boxShadow: cat && cat.color ? `0 2px 8px ${cat.color}20` : '0 2px 8px #6366f120',
         }}
       >
-        {cat.emoji}
+        {cat?.emoji || '💳'}
       </div>
 
       {/* Info */}
@@ -128,9 +128,11 @@ const RecentTransactions = ({ refreshTrigger }) => {
   const [showReceipt, setShowReceipt]     = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
 
-  useEffect(() => { fetch(); }, [refreshTrigger, activeFilter]);
+  useEffect(() => { 
+    fetchTransactions(); 
+  }, [refreshTrigger, activeFilter]);
 
-  const fetch = async () => {
+  const fetchTransactions = async () => {
     setLoading(true);
     try {
       const params = { limit: 6 };
@@ -140,6 +142,7 @@ const RecentTransactions = ({ refreshTrigger }) => {
       setTransactions(list.slice(0, 6));
     } catch (e) {
       console.error('RecentTransactions fetch error:', e);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
