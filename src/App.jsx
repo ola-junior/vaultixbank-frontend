@@ -20,7 +20,14 @@ import Notifications from './pages/Notifications';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BillsPage from './pages/BillsPage'; // ✅ Added Bills page
-import BillsIndex from './pages/BillsIndex'; 
+import BillsIndex from './pages/BillsIndex';
+// Add these imports
+import Receive from './pages/Receive';
+import Savings from './pages/Savings';
+import Loans from './pages/Loans';
+import Insurance from './pages/Insurance';
+import Play4AChild from './pages/Play4AChild';
+import BillsIndex from './pages/BillsIndex';
 
 // Components
 import Navbar from './components/Layout/Navbar';
@@ -78,10 +85,10 @@ const AppLayout = ({ children }) => {
 };
 
 const ToastProvider = () => {
-  const [isDark, setIsDark] = React.useState(() => 
+  const [isDark, setIsDark] = React.useState(() =>
     document.documentElement.classList.contains('dark')
   );
-  
+
   React.useEffect(() => {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -95,26 +102,26 @@ const ToastProvider = () => {
   }, []);
 
   return (
-    <Toaster 
-      position="top-right" 
+    <Toaster
+      position="top-right"
       toastOptions={{
         duration: 4000,
-        style: { 
-          background: isDark ? '#1f2937' : '#fff', 
-          color: isDark ? '#fff' : '#1f2937', 
-          borderRadius: '12px', 
-          padding: '12px 16px' 
+        style: {
+          background: isDark ? '#1f2937' : '#fff',
+          color: isDark ? '#fff' : '#1f2937',
+          borderRadius: '12px',
+          padding: '12px 16px'
         },
         success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-      }} 
+      }}
     />
   );
 };
 
 function App() {
   React.useMemo(() => initializeDarkMode(), []);
-  
+
   return (
     <Router>
       <AuthProvider>
@@ -128,7 +135,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/verify" element={<EmailVerification />} />
-          
+
           {/* Protected Routes with AppLayout */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
@@ -145,7 +152,14 @@ function App() {
               <AppLayout><Transfer /></AppLayout>
             </ProtectedRoute>
           } />
-            <Route path="/bills" element={<ProtectedRoute><AppLayout><BillsIndex /></AppLayout></ProtectedRoute>} />
+          <Route path="/bills" element={<ProtectedRoute><AppLayout><BillsIndex /></AppLayout></ProtectedRoute>} />
+          <Route path="/receive" element={<ProtectedRoute><AppLayout><Receive /></AppLayout></ProtectedRoute>} />
+          <Route path="/savings" element={<ProtectedRoute><AppLayout><Savings /></AppLayout></ProtectedRoute>} />
+          <Route path="/loans" element={<ProtectedRoute><AppLayout><Loans /></AppLayout></ProtectedRoute>} />
+          <Route path="/insurance" element={<ProtectedRoute><AppLayout><Insurance /></AppLayout></ProtectedRoute>} />
+          <Route path="/play4achild" element={<ProtectedRoute><AppLayout><Play4AChild /></AppLayout></ProtectedRoute>} />
+          <Route path="/bills" element={<ProtectedRoute><AppLayout><BillsIndex /></AppLayout></ProtectedRoute>} />
+          <Route path="/bills/:category" element={<ProtectedRoute><AppLayout><BillsPage /></AppLayout></ProtectedRoute>} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <AppLayout><Profile /></AppLayout>
@@ -171,14 +185,14 @@ function App() {
               <AppLayout><Notifications /></AppLayout>
             </ProtectedRoute>
           } />
-          
+
           {/* ✅ Bills Routes */}
           <Route path="/bills/:category" element={
             <ProtectedRoute>
               <AppLayout><BillsPage /></AppLayout>
             </ProtectedRoute>
           } />
-          
+
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
