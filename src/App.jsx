@@ -27,7 +27,6 @@ import Savings from './pages/Savings';
 import Loans from './pages/Loans';
 import Insurance from './pages/Insurance';
 import Play4AChild from './pages/Play4AChild';
-import BillsIndex from './pages/BillsIndex';
 
 // Components
 import Navbar from './components/Layout/Navbar';
@@ -158,7 +157,6 @@ function App() {
           <Route path="/loans" element={<ProtectedRoute><AppLayout><Loans /></AppLayout></ProtectedRoute>} />
           <Route path="/insurance" element={<ProtectedRoute><AppLayout><Insurance /></AppLayout></ProtectedRoute>} />
           <Route path="/play4achild" element={<ProtectedRoute><AppLayout><Play4AChild /></AppLayout></ProtectedRoute>} />
-          <Route path="/bills" element={<ProtectedRoute><AppLayout><BillsIndex /></AppLayout></ProtectedRoute>} />
           <Route path="/bills/:category" element={<ProtectedRoute><AppLayout><BillsPage /></AppLayout></ProtectedRoute>} />
           <Route path="/profile" element={
             <ProtectedRoute>
