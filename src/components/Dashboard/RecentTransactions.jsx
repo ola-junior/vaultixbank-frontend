@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
-import TransactionReceipt from './TransactionReceipt';
+import TransactionReceipt from '../Common/TransactionReceipt';
 import {
   FaChevronRight, FaArrowUp, FaArrowDown,
   FaExchangeAlt, FaChevronDown,
