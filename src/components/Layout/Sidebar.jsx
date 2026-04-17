@@ -9,7 +9,7 @@ import {
   FaUser, 
   FaChartBar,
   FaTimes,
-  FaCreditCard,
+  FaCreditCard,  // ✅ Only ONE declaration
   FaWallet,
   FaCog,
   FaSignOutAlt,
@@ -17,9 +17,9 @@ import {
   FaBell,
   FaBolt,
   FaWifi,
-  FaTv,
-  FaCreditCard
+  FaTv
 } from 'react-icons/fa';
+import { FaMobileAlt } from 'react-icons/fa'; 
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
