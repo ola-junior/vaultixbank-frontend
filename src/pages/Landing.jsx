@@ -1097,7 +1097,7 @@ const Landing = () => {
             </div>
 
             <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-gray-600 text-xs">© 2024 Vaultix Digital Bank. All rights reserved. Licensed by CBN.</p>
+              <p className="text-gray-600 text-xs">© 2026 Vaultix Digital Bank. All rights reserved. Licensed by CBN.</p>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <p className="text-gray-500 text-xs">All systems operational</p>

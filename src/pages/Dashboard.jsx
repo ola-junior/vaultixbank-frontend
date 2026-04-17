@@ -14,7 +14,7 @@ import { formatCurrency } from '../utils/formatters';
 import { motion } from 'framer-motion';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth(); // ✅ ADD refreshUser
   const [stats, setStats] = useState({
     totalCredits: 0,
     totalDebits: 0,
@@ -42,19 +42,29 @@ const Dashboard = () => {
     else setGreeting('Good evening');
   }, []);
 
+  // ✅ Refresh user data when dashboard mounts or becomes visible
+  useEffect(() => {
+    const refreshUserData = async () => {
+      await refreshUser();
+    };
+    refreshUserData();
+  }, []);
+
   useEffect(() => {
     fetchDashboardData();
   }, [refreshKey]);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
+        // ✅ Refresh user data when tab becomes visible
+        await refreshUser();
         setRefreshKey(prev => prev + 1);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  }, [refreshUser]);
 
   const fetchDashboardData = async () => {
     try {
@@ -93,8 +103,10 @@ const Dashboard = () => {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
+    // ✅ Refresh user data first
+    await refreshUser();
     setRefreshKey(prev => prev + 1);
   };
 
@@ -197,7 +209,7 @@ const Dashboard = () => {
               {user?.name?.split(' ')[0] || 'Welcome back'}!
             </h1>
 
-            {/* Balance pill */}
+            {/* Balance pill - ✅ Now updates automatically when user.balance changes */}
             <div className="inline-flex items-center gap-3 bg-white/15 backdrop-blur-sm rounded-2xl px-5 py-3 border border-white/20">
               <div>
                 <p className="text-white/60 text-xs mb-0.5">Available Balance</p>
