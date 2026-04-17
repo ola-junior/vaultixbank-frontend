@@ -17,9 +17,10 @@ import {
   FaBell,
   FaBolt,
   FaWifi,
-  FaTv
+  FaTv,
+  FaMobileAlt 
 } from 'react-icons/fa';
-import { FaMobileAlt } from 'react-icons/fa'; 
+
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
