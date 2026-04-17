@@ -17,7 +17,8 @@ import {
   FaBell,
   FaBolt,
   FaWifi,
-  FaTv
+  FaTv,
+  FaCreditCard
 } from 'react-icons/fa';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -43,6 +44,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/bills/tv', icon: FaTv, label: 'Cable TV' },
       ]
     },
+    { path: '/cards', icon: FaCreditCard, label: 'Cards' },
     { path: '/notifications', icon: FaBell, label: 'Notifications' },
     { path: '/profile', icon: FaUser, label: 'Profile' },
     { path: '/analytics', icon: FaChartBar, label: 'Analytics' },
