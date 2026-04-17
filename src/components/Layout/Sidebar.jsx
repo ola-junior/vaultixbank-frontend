@@ -225,7 +225,4 @@ const Sidebar = ({ isOpen, onClose }) => {
   );
 };
 
-// Add missing FaMobileAlt import if using bills submenu
-import { FaMobileAlt } from 'react-icons/fa';
-
 export default Sidebar;
