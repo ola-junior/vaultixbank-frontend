@@ -4,9 +4,8 @@ import { toPng } from 'html-to-image';
 import { formatCurrency } from '../../utils/formatters';
 import {
   FaCheckCircle, FaTimes, FaShareAlt, FaCopy,
-  FaArrowUp, FaArrowDown, FaExchangeAlt,
   FaShieldAlt, FaReceipt, FaTimesCircle, FaExclamationCircle,
-  FaDownload, FaSpinner
+  FaSpinner, FaDownload
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -100,7 +99,8 @@ const Section = ({ title, children, isDark }) => (
 
 const TransactionReceipt = ({ transaction, user, onClose }) => {
   const [visible, setVisible] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [copiedReceipt, setCopiedReceipt] = useState(false);
   const [sharing, setSharing] = useState(false);
   const receiptRef = useRef(null);
   const isDark = useDarkMode();
@@ -122,7 +122,6 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
   const recipientBank = transaction?.recipientBank;
   const senderName = transaction?.senderName || user?.name;
   const senderAccount = maskAccount(transaction?.senderAccount || user?.accountNumber);
-  const balanceAfter = transaction?.balanceAfter ?? transaction?.newBalance;
 
   const close = () => {
     setVisible(false);
@@ -135,13 +134,57 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
     return () => window.removeEventListener('keydown', fn);
   }, []);
 
-  const copyRef = async () => {
+  const copyReference = async () => {
     try {
       await navigator.clipboard.writeText(txRef);
-      setCopied(true);
+      setCopiedRef(true);
       toast.success('Reference copied!');
-      setTimeout(() => setCopied(false), 2000);
-    } catch { toast.error('Could not copy'); }
+      setTimeout(() => setCopiedRef(false), 2000);
+    } catch { 
+      toast.error('Could not copy'); 
+    }
+  };
+
+  // Copy entire receipt as text
+  const copyReceiptAsText = async () => {
+    const receiptText = `
+═══════════════════════════════════════
+           VAULTIX TRANSACTION RECEIPT
+═══════════════════════════════════════
+
+Status: ${cfg.label}
+Amount: ${isCredit ? '+' : '-'}${formatCurrency(amount)}
+Type: ${typeLabel}
+Date: ${formatReceiptDate(createdAt)}
+
+${recipientName || recipientAccount ? '─ RECIPIENT ─' : ''}
+${recipientName ? `Name: ${recipientName}` : ''}
+${recipientAccount ? `Account: ${maskAccount(recipientAccount)}` : ''}
+${recipientBank ? `Bank: ${recipientBank}` : ''}
+
+─ SENDER ─
+Name: ${senderName}
+Account: ${senderAccount}
+
+─ TRANSACTION DETAILS ─
+Type: ${typeLabel}
+${transaction?.description ? `Note: ${transaction.description}` : ''}
+Reference: ${txRef}
+Status: ${cfg.label}
+
+═══════════════════════════════════════
+Secured by Vaultix · 256-bit SSL Encrypted
+═══════════════════════════════════════
+    `;
+
+    try {
+      await navigator.clipboard.writeText(receiptText);
+      setCopiedReceipt(true);
+      toast.success('Receipt copied to clipboard!');
+      setTimeout(() => setCopiedReceipt(false), 2000);
+    } catch {
+      toast.error('Could not copy receipt');
+    }
   };
 
   // Share as Image (like OPay)
@@ -153,18 +196,15 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
 
     setSharing(true);
     try {
-      // Capture the receipt as PNG
       const dataUrl = await toPng(receiptRef.current, {
         quality: 1.0,
         pixelRatio: 2,
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
       });
 
-      // Convert to blob
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], `Vaultix-Receipt-${txRef.slice(0, 8)}.png`, { type: 'image/png' });
 
-      // Share if supported
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: 'Vaultix Transaction Receipt',
@@ -173,7 +213,6 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
         });
         toast.success('Receipt shared!');
       } else {
-        // Fallback: Download
         const link = document.createElement('a');
         link.download = `Vaultix-Receipt-${txRef.slice(0, 8)}.png`;
         link.href = dataUrl;
@@ -183,7 +222,6 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error('Share error:', err);
-        // Fallback: Download
         try {
           const dataUrl = await toPng(receiptRef.current, {
             quality: 1.0,
@@ -208,14 +246,12 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
     <AnimatePresence>
       {visible && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={close}
             className="fixed inset-0 z-[9998] bg-black/50 dark:bg-[#020617]/80 backdrop-blur-sm"
           />
 
-          {/* Sheet */}
           <motion.div
             initial={{ opacity: 0, y: 60, scale: 0.93 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -306,15 +342,14 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
                     </Section>
                   )}
 
-                  {/* Transaction meta */}
+                  {/* Transaction meta - BALANCE REMOVED */}
                   <Section title="Transaction Details" isDark={isDark}>
                     <Row label="Type" value={typeLabel} isDark={isDark} />
                     {transaction?.description && <Row label="Note" value={transaction.description} isDark={isDark} />}
-                    {(balanceAfter !== null && balanceAfter !== undefined) && (
-                      <Row label="Balance After" value={formatCurrency(balanceAfter)} isDark={isDark} />
-                    )}
+                    
+                    {/* ✅ BALANCE REMOVED - No longer shown on receipt */}
 
-                    {/* Reference row with copy */}
+                    {/* Reference row */}
                     <div className="flex justify-between items-center py-1.5">
                       <span className={`text-[11px] uppercase tracking-wider font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
                         Reference
@@ -323,13 +358,13 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
                         <span className={`text-xs font-mono font-medium tracking-wider ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>
                           {txRef.length > 16 ? txRef.slice(0, 16) + '…' : txRef}
                         </span>
-                        <button onClick={copyRef} className="px-2 py-1 rounded-md text-[10px] font-semibold transition-all"
+                        <button onClick={copyReference} className="px-2 py-1 rounded-md text-[10px] font-semibold transition-all"
                           style={{
-                            background: copied ? 'rgba(16,185,129,0.15)' : isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)',
-                            border: `1px solid ${copied ? 'rgba(16,185,129,0.35)' : 'rgba(99,102,241,0.35)'}`,
-                            color: copied ? '#10b981' : '#6366f1',
+                            background: copiedRef ? 'rgba(16,185,129,0.15)' : isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)',
+                            border: `1px solid ${copiedRef ? 'rgba(16,185,129,0.35)' : 'rgba(99,102,241,0.35)'}`,
+                            color: copiedRef ? '#10b981' : '#6366f1',
                           }}>
-                          {copied ? '✓ Copied' : <><FaCopy className="text-[9px] mr-0.5" /> Copy</>}
+                          {copiedRef ? '✓ Copied' : <><FaCopy className="text-[9px] mr-0.5" /> Copy</>}
                         </button>
                       </div>
                     </div>
@@ -360,15 +395,30 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
                 </motion.div>
               </div>
 
-              {/* Action buttons (outside receipt - not captured in image) */}
+              {/* Action buttons */}
               <motion.div
                 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}
-                className="flex gap-2.5 px-5 pb-6 pt-2 bg-transparent"
+                className="grid grid-cols-3 gap-2 px-5 pb-6 pt-2 bg-transparent"
               >
+                {/* Copy Receipt Button */}
+                <button
+                  onClick={copyReceiptAsText}
+                  className="py-3 rounded-xl font-semibold text-xs flex flex-col items-center justify-center gap-1 transition-all"
+                  style={{
+                    background: copiedReceipt ? 'rgba(16,185,129,0.15)' : isDark ? 'rgba(148,163,184,0.1)' : 'rgba(148,163,184,0.08)',
+                    border: `1px solid ${copiedReceipt ? 'rgba(16,185,129,0.35)' : 'rgba(148,163,184,0.25)'}`,
+                    color: copiedReceipt ? '#10b981' : isDark ? '#94a3b8' : '#64748b',
+                  }}
+                >
+                  <FaCopy className="text-xs" />
+                  <span>{copiedReceipt ? 'Copied!' : 'Copy'}</span>
+                </button>
+
+                {/* Share Image Button */}
                 <button
                   onClick={handleShareAsImage}
                   disabled={sharing}
-                  className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                  className="py-3 rounded-xl font-semibold text-xs flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-60"
                   style={{
                     background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)',
                     border: '1px solid rgba(99,102,241,0.3)',
@@ -376,15 +426,17 @@ const TransactionReceipt = ({ transaction, user, onClose }) => {
                   }}
                 >
                   {sharing ? <FaSpinner className="animate-spin text-xs" /> : <FaShareAlt className="text-xs" />}
-                  {sharing ? 'Sharing...' : 'Share Receipt'}
+                  <span>{sharing ? 'Sharing...' : 'Share'}</span>
                 </button>
 
+                {/* Done Button */}
                 <button
                   onClick={close}
-                  className="flex-[2] py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center shadow-lg shadow-indigo-500/30"
+                  className="py-3 rounded-xl font-bold text-xs text-white flex flex-col items-center justify-center gap-1 shadow-lg shadow-indigo-500/30"
                   style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                 >
-                  Done
+                  <FaCheckCircle className="text-xs" />
+                  <span>Done</span>
                 </button>
               </motion.div>
             </div>
