@@ -29,6 +29,7 @@ import Insurance from './pages/Insurance';
 import Play4AChild from './pages/Play4AChild';
 import Cards from './pages/Cards';
 import Contact from './pages/Contact';
+import AdminSupport from './pages/AdminSupport';
 
 // Components
 import Navbar from './components/Layout/Navbar';
@@ -136,7 +137,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/verify" element={<EmailVerification />} />
-
+          <Route path="/admin/support" element={<AdminSupport />} />
           {/* Protected Routes with AppLayout */}
           <Route path="/dashboard" element={
             <ProtectedRoute>

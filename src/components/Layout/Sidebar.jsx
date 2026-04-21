@@ -26,6 +26,9 @@ const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const [imgError, setImgError] = useState(false);
 
+  // ✅ Move isAdmin here - AFTER useAuth()
+  const isAdmin = user?.email === 'yxngalhaji02@gmail.com';
+
   // Reset image error when profilePicture changes
   useEffect(() => {
     setImgError(false);
@@ -55,6 +58,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     { path: '/settings', icon: FaCog, label: 'Settings' },
     { path: '/security', icon: FaShieldAlt, label: 'Security' },
     { path: '/contact', icon: FaHeadset, label: 'Contact Us' },
+    // ✅ Add Admin Support link conditionally
+    ...(isAdmin ? [{ path: '/admin/support', icon: FaShieldAlt, label: 'Admin Support' }] : []),
   ];
 
   const handleLogout = () => {
@@ -166,6 +171,11 @@ const Sidebar = ({ isOpen, onClose }) => {
                       <>
                         <item.icon className={`w-5 h-5 mr-3 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`} />
                         <span>{item.label}</span>
+                        {item.path === '/admin/support' && (
+                          <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-full">
+                            ADMIN
+                          </span>
+                        )}
                       </>
                     )}
                   </NavLink>
