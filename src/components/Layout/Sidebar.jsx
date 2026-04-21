@@ -9,7 +9,7 @@ import {
   FaUser, 
   FaChartBar,
   FaTimes,
-  FaCreditCard,  // ✅ Only ONE declaration
+  FaCreditCard,
   FaWallet,
   FaCog,
   FaSignOutAlt,
@@ -19,9 +19,8 @@ import {
   FaWifi,
   FaTv,
   FaHeadset,
-  FaMobileAlt 
+  FaMobileAlt
 } from 'react-icons/fa';
-
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
@@ -55,7 +54,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const bottomMenuItems = [
     { path: '/settings', icon: FaCog, label: 'Settings' },
     { path: '/security', icon: FaShieldAlt, label: 'Security' },
-     { path: '/contact', icon: FaHeadset, label: 'Contact Us' },
+    { path: '/contact', icon: FaHeadset, label: 'Contact Us' },
   ];
 
   const handleLogout = () => {
@@ -81,7 +80,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Branding - FIXED: Removed <a> tag that causes reload */}
+        {/* Branding */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200 dark:border-gray-700">
           <Link to="/dashboard" className="flex items-center gap-3" onClick={onClose}>
             <div className="relative">

@@ -7,7 +7,8 @@ import {
   FaCheckCircle, FaChevronRight, FaClock,
   FaInstagram, FaTwitter, FaFacebook, FaLinkedin,
   FaYoutube, FaWhatsapp, FaTelegram, FaGlobe,
-  FaUser, FaComment, FaTimes, FaCopy, FaStar
+  FaUser, FaComment, FaTimes, FaCopy, FaStar,
+  FaCreditCard, FaMoneyBillWave
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -185,9 +186,7 @@ const Contact = () => {
     toast.success('Phone number copied!');
   };
 
-  // Import missing icon
-  const FaCreditCard = ({ className }) => <span className={className}>💳</span>;
-  const FaMoneyBillWave = ({ className }) => <span className={className}>💵</span>;
+  // ✅ REMOVED the duplicate icon definitions that were causing the error
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-8">
