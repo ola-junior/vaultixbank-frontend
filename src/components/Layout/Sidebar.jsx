@@ -18,6 +18,7 @@ import {
   FaBolt,
   FaWifi,
   FaTv,
+  FaHeadset,
   FaMobileAlt 
 } from 'react-icons/fa';
 
@@ -54,6 +55,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const bottomMenuItems = [
     { path: '/settings', icon: FaCog, label: 'Settings' },
     { path: '/security', icon: FaShieldAlt, label: 'Security' },
+     { path: '/contact', icon: FaHeadset, label: 'Contact Us' },
   ];
 
   const handleLogout = () => {

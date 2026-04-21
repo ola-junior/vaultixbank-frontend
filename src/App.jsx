@@ -28,6 +28,7 @@ import Loans from './pages/Loans';
 import Insurance from './pages/Insurance';
 import Play4AChild from './pages/Play4AChild';
 import Cards from './pages/Cards';
+import Contact from './pages/Contact';
 
 // Components
 import Navbar from './components/Layout/Navbar';
@@ -160,6 +161,8 @@ function App() {
           <Route path="/insurance" element={<ProtectedRoute><AppLayout><Insurance /></AppLayout></ProtectedRoute>} />
           <Route path="/play4achild" element={<ProtectedRoute><AppLayout><Play4AChild /></AppLayout></ProtectedRoute>} />
           <Route path="/bills/:category" element={<ProtectedRoute><AppLayout><BillsPage /></AppLayout></ProtectedRoute>} />
+          <Route path="/contact" element={<ProtectedRoute><AppLayout><Contact /></AppLayout></ProtectedRoute>} />
+          <Route path="/support" element={<ProtectedRoute><AppLayout><Contact /></AppLayout></ProtectedRoute>} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <AppLayout><Profile /></AppLayout>
