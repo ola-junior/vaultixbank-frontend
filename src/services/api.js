@@ -1,9 +1,19 @@
 import axios from 'axios';
 
-// Use environment variable for API URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const resolveApiUrl = () => {
+  const localUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const prodUrl = import.meta.env.VITE_PROD_API_URL || 'https://vaultixbank-backend.onrender.com/api';
 
-console.log('🔗 API URL:', API_URL);
+  if (import.meta.env.DEV) {
+    return localUrl;
+  }
+
+  return import.meta.env.VITE_PROD_API_URL || import.meta.env.VITE_API_URL || prodUrl;
+};
+
+const API_URL = resolveApiUrl();
+
+console.log('🔗 API URL:', API_URL, 'MODE:', import.meta.env.MODE);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -40,6 +50,8 @@ api.interceptors.response.use(
       status: error.response?.status,
       url: error.config?.url,
       message: error.message,
+      serverMessage: error.response?.data?.message,
+      serverData: error.response?.data,
       code: error.code
     });
     

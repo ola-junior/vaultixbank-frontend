@@ -3,9 +3,15 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { signInWithGoogle, signInWithFacebook, signInWithTwitter, signOutFromFirebase } from '../firebase/config';
 
-const AuthContext = createContext({});
+const AuthContext = createContext(null);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used inside AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

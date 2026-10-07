@@ -87,7 +87,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       >
         {/* Branding */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200 dark:border-gray-700">
-          <Link to="/dashboard" className="flex items-center gap-3" onClick={onClose}>
+          <Link to="/Landing" className="flex items-center gap-3" onClick={onClose}>
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg blur-md opacity-50" />
               <div className="relative w-8 h-8 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">

@@ -392,14 +392,13 @@ const Landing = () => {
   const testimonialsRef = useRef(null);
   const ctaRef = useRef(null);
   const securityRef = useRef(null);
-  const pricingRef = useRef(null);
-
   const heroInView = useInView(heroRef, { once: true });
   const featuresInView = useInView(featuresRef, { once: true });
   const statsInView = useInView(statsRef, { once: true });
   const testimonialsInView = useInView(testimonialsRef, { once: true });
   const ctaInView = useInView(ctaRef, { once: true });
   const securityInView = useInView(securityRef, { once: true });
+  const pricingRef = useRef(null);
   const pricingInView = useInView(pricingRef, { once: true });
 
   useEffect(() => {
@@ -461,10 +460,10 @@ const Landing = () => {
   ];
 
   const testimonials = [
-    { name: 'Sarah Johnson', role: 'Business Owner, Lagos', content: 'Vaultix has completely transformed how I manage my business finances. The instant transfers save me hours every week and the analytics help me understand my cash flow like never before.', rating: 5, image: 'https://i.pravatar.cc/150?img=1' },
-    { name: 'Michael Okonkwo', role: 'Software Engineer, Abuja', content: 'The security features are outstanding. I can send large amounts knowing my funds are protected. The biometric login is seamless and the 24/7 support is incredibly responsive.', rating: 5, image: 'https://i.pravatar.cc/150?img=2' },
-    { name: 'Amina Bello', role: 'Student, Kano', content: 'I\'ve saved more in 3 months with Vaultix than I did all of last year. The 15% interest rate is real, and the savings tracker keeps me motivated to hit my goals.', rating: 5, image: 'https://i.pravatar.cc/150?img=3' },
-    { name: 'Chidi Nwosu', role: 'Entrepreneur, Port Harcourt', content: 'Opening a business account was completely paperless and took less than 10 minutes. The team payroll features have made managing my 30-person team so much simpler.', rating: 5, image: 'https://i.pravatar.cc/150?img=4' },
+    { name: 'Abdullahi Abdulwaris', role: 'CEO, Ibadan', content: 'Vaultix has completely transformed how I manage my business finances. The instant transfers save me hours every week and the analytics help me understand my cash flow like never before.', rating: 5, image: 'https://i.pravatar.cc/150?img=11' },
+    { name: 'Ahmed Ridwan', role: 'Business Owner, Abuja', content: 'The security features are outstanding. I can send large amounts knowing my funds are protected. The biometric login is seamless and the 24/7 support is incredibly responsive.', rating: 5, image: 'https://i.pravatar.cc/150?img=12' },
+    { name: 'Amuda Yussuf', role: 'Entrepreneur, Lagos', content: 'I\'ve saved more in 3 months with Vaultix than I did all of last year. The 15% interest rate is real, and the savings tracker keeps me motivated to hit my goals.', rating: 5, image: 'https://i.pravatar.cc/150?img=13' },
+    { name: 'Akinkumi Abdullah', role: 'Business Owner, Osun', content: 'Opening a business account was completely paperless and took less than 10 minutes. The team payroll features have made managing my 30-person team so much simpler.', rating: 5, image: 'https://i.pravatar.cc/150?img=14' },
   ];
 
   const securityFeatures = [
@@ -472,12 +471,6 @@ const Landing = () => {
     { icon: FaFingerprint, title: 'Biometric Login', description: 'Face ID & Touch ID support' },
     { icon: FaLock, title: '256-bit Encryption', description: 'Military-grade data protection' },
     { icon: FaShieldAlt, title: 'Multi-Signature', description: 'Dual authorization on large transfers' },
-  ];
-
-  const plans = [
-    { name: 'Personal', price: 'Free', desc: 'For individuals getting started', features: ['Instant transfers', 'Virtual debit card', 'Basic analytics', '5% savings rate', '24/7 support'], cta: 'Open Free Account', highlight: false },
-    { name: 'Premium', price: '₦2,500/mo', desc: 'For power users and families', features: ['Everything in Personal', 'Up to 15% savings rate', 'Smart budgeting tools', 'Priority support', 'Multiple sub-accounts', 'International transfers'], cta: 'Start Premium', highlight: true },
-    { name: 'Business', price: '₦9,999/mo', desc: 'For growing businesses', features: ['Everything in Premium', 'Unlimited team members', 'Payroll management', 'Business analytics', 'API access', 'Dedicated account manager'], cta: 'Go Business', highlight: false },
   ];
 
   const fadeInUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
@@ -525,7 +518,7 @@ const Landing = () => {
 
               {/* Desktop nav links */}
               <div className="hidden md:flex items-center space-x-1">
-                {[['#features', 'Features'], ['#security', 'Security'], ['#pricing', 'Pricing'], ['#testimonials', 'Reviews']].map(([href, label]) => (
+                {[['#features', 'Features'], ['#security', 'Security'], ['#testimonials', 'Reviews']].map(([href, label]) => (
                   <a key={href} href={href} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-medium">
                     {label}
                   </a>
@@ -600,7 +593,7 @@ const Landing = () => {
               {mobileMenuOpen && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="md:hidden pb-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="flex flex-col gap-1 pt-3">
-                    {[['#features', 'Features'], ['#security', 'Security'], ['#pricing', 'Pricing'], ['#testimonials', 'Reviews']].map(([href, label]) => (
+                    {[['#features', 'Features'], ['#security', 'Security'], ['#testimonials', 'Reviews']].map(([href, label]) => (
                       <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-medium">{label}</a>
                     ))}
                     <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
@@ -913,54 +906,60 @@ const Landing = () => {
         {/* ── PRICING ── */}
         <section id="pricing" ref={pricingRef} className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gray-50/70 dark:bg-gray-900/50">
           <div className="max-w-7xl mx-auto">
-            <motion.div variants={staggerChildren} initial="hidden" animate={pricingInView ? 'visible' : 'hidden'} className="text-center mb-16">
-              <motion.p variants={fadeInUp} className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Simple pricing</motion.p>
+            <motion.div variants={staggerChildren} initial="hidden" animate={pricingInView ? 'visible' : 'hidden'} className="text-center mb-12">
+              <motion.p variants={fadeInUp} className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Pricing</motion.p>
               <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
-                Plans for <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">every stage</span>
+                Always <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">free</span>
               </motion.h2>
-              <motion.p variants={fadeInUp} className="text-lg text-gray-500 dark:text-gray-400">Start free, upgrade when you're ready. No hidden fees, ever.</motion.p>
+              <motion.p variants={fadeInUp} className="text-lg text-gray-500 dark:text-gray-400">No hidden fees. No subscriptions. Banking the way it should be.</motion.p>
             </motion.div>
 
-            <motion.div variants={staggerChildren} initial="hidden" animate={pricingInView ? 'visible' : 'hidden'} className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {plans.map((plan, i) => (
-                <motion.div key={i} variants={fadeInUp}
-                  className={`relative rounded-2xl p-7 border transition-all duration-300 ${
-                    plan.highlight
-                      ? 'bg-gradient-to-br from-indigo-600 to-blue-600 border-transparent shadow-2xl shadow-indigo-200 dark:shadow-indigo-900/40 scale-105'
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-700'
-                  }`}
-                >
-                  {plan.highlight && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">Most Popular</span>
-                    </div>
-                  )}
-                  <div className="mb-5">
-                    <h3 className={`text-lg font-bold mb-1 ${plan.highlight ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{plan.name}</h3>
-                    <p className={`text-xs ${plan.highlight ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>{plan.desc}</p>
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate={pricingInView ? 'visible' : 'hidden'}
+            >
+              <div className="relative bg-gradient-to-br from-indigo-600 to-blue-600 rounded-3xl p-8 md:p-10 shadow-2xl shadow-indigo-200 dark:shadow-indigo-900/40">
+                <div className="absolute -top-3 left-8">
+                  <span className="bg-gradient-to-r from-emerald-400 to-teal-400 text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-lg">100% Free Forever</span>
+                </div>
+
+                <div className="flex flex-col lg:flex-row lg:items-center gap-8 mt-2">
+                  {/* Price block */}
+                  <div className="lg:border-r lg:border-white/20 lg:pr-10 flex-shrink-0 text-center lg:text-left">
+                    <div className="text-7xl font-bold text-white mb-1">₦0</div>
+                    <p className="text-white/70 text-sm">per month, always</p>
+                    <Link
+                      to="/register"
+                      className="inline-block mt-6 px-8 py-3.5 bg-white text-indigo-600 rounded-xl text-center font-bold hover:bg-gray-50 shadow-lg transition-all w-full lg:w-auto"
+                    >
+                      Open Free Account
+                    </Link>
+                    <p className="text-white/40 text-xs mt-3">No credit card required · 5 minutes</p>
                   </div>
-                  <div className={`text-3xl font-bold mb-6 ${plan.highlight ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{plan.price}</div>
-                  <ul className="space-y-3 mb-7">
-                    {plan.features.map((feat, j) => (
-                      <li key={j} className="flex items-start gap-2.5">
-                        <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${plan.highlight ? 'bg-white/20' : 'bg-indigo-100 dark:bg-indigo-900/50'}`}>
-                          <FaCheck className={`text-[8px] ${plan.highlight ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
+
+                  {/* Features grid */}
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 flex-1">
+                    {[
+                      'Instant bank transfers',
+                      'Virtual & physical debit card',
+                      'Up to 15% savings interest',
+                      'AI-powered spending analytics',
+                      'Bill payments & airtime top-up',
+                      '256-bit encryption & biometric login',
+                      '24/7 customer support',
+                      'Zero transfer fees',
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-center gap-3">
+                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                          <FaCheck className="text-white text-[9px]" />
                         </div>
-                        <span className={`text-sm ${plan.highlight ? 'text-white/90' : 'text-gray-600 dark:text-gray-400'}`}>{feat}</span>
+                        <span className="text-white/90 text-sm">{feat}</span>
                       </li>
                     ))}
                   </ul>
-                  <Link to="/register"
-                    className={`block w-full py-3 rounded-xl text-center text-sm font-semibold transition-all ${
-                      plan.highlight
-                        ? 'bg-white text-indigo-600 hover:bg-gray-50 shadow-lg'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md'
-                    }`}
-                  >
-                    {plan.cta}
-                  </Link>
-                </motion.div>
-              ))}
+                </div>
+              </div>
             </motion.div>
           </div>
         </section>

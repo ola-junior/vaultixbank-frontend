@@ -46,39 +46,7 @@ const Cards = () => {
       }
     } catch (err) {
       console.error('Failed to fetch cards:', err);
-      // Mock data for demo
-      setCards([
-        {
-          _id: '1',
-          type: 'physical',
-          name: 'Platinum Debit',
-          cardNumber: '5399412345678901',
-          expiry: '05/28',
-          cvv: '123',
-          status: 'active',
-          frozen: false,
-          dailyLimit: 100000,
-          spentToday: 25000,
-          balance: 50000,
-          brand: 'mastercard',
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: '2',
-          type: 'virtual',
-          name: 'Virtual Dollar Card',
-          cardNumber: '4532123456789012',
-          expiry: '08/27',
-          cvv: '456',
-          status: 'active',
-          frozen: false,
-          dailyLimit: 500000,
-          spentToday: 120000,
-          balance: 200000,
-          brand: 'visa',
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      toast.error('Failed to load cards');
     } finally {
       setLoading(false);
     }
@@ -144,7 +112,7 @@ const Cards = () => {
         toast.success(`Card ${action}d successfully`);
       }
     } catch (err) {
-      toast.error(`Failed to ${action} card`);
+      toast.error(err.response?.data?.message || `Failed to ${action} card`);
     }
   };
 
@@ -159,7 +127,7 @@ const Cards = () => {
       toast.success('Card deleted successfully');
       setSelectedCard(null);
     } catch (err) {
-      toast.error('Failed to delete card');
+      toast.error(err.response?.data?.message || 'Failed to delete card');
     }
   };
 

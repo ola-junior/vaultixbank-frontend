@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -41,6 +41,7 @@ const NIGERIAN_BANKS = [
   { code: 'OPAY',      name: 'OPay' },
   { code: 'PALMPAY',   name: 'PalmPay' },
   { code: 'KUDABANK',  name: 'Kuda Bank' },
+  { code: 'MONIEPOINT', name: 'Moniepoint' },
   { code: 'OTHER',     name: 'Other / My bank not listed' },
 ];
 
@@ -71,10 +72,31 @@ const TABS = [
 ];
 
 const DEPOSIT_METHODS = [
-  { id: 'card', name: 'Debit / Credit Card', icon: FaCreditCard, color: 'from-purple-500 to-pink-500',   desc: 'Visa, Mastercard, Verve' },
-  { id: 'bank', name: 'Bank Transfer',       icon: FaUniversity, color: 'from-blue-500 to-cyan-500',    desc: 'Direct from your bank' },
-  { id: 'ussd', name: 'USSD',                icon: FaMobileAlt,  color: 'from-green-500 to-emerald-500', desc: 'Works without internet' },
+  { id: 'card', name: 'Debit / Credit Card', icon: FaCreditCard, color: 'from-purple-500 to-pink-500',   desc: 'Pay with Paystack' },
 ];
+
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
+const loadPaystackScript = () => new Promise((resolve, reject) => {
+  if (window.PaystackPop) {
+    resolve();
+    return;
+  }
+
+  const existingScript = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
+  if (existingScript) {
+    existingScript.addEventListener('load', resolve, { once: true });
+    existingScript.addEventListener('error', () => reject(new Error('Failed to load Paystack script')), { once: true });
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = 'https://js.paystack.co/v1/inline.js';
+  script.async = true;
+  script.onload = resolve;
+  script.onerror = () => reject(new Error('Failed to load Paystack script'));
+  document.body.appendChild(script);
+});
 
 const WITHDRAW_METHODS = [
   { id: 'bank',   name: 'Bank Account',  icon: FaUniversity, color: 'from-blue-500 to-cyan-500',    desc: 'Nigerian bank account' },
@@ -131,7 +153,7 @@ const FieldLabel = ({ children }) => (
 );
 
 // Info banner
-const InfoBanner = ({ color = 'blue', icon: Icon, title, body }) => {
+const InfoBanner = ({ color = 'blue', icon: IconComponent, title, body }) => {
   const colors = {
     blue:   { wrap: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',   icon: 'bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300',   title: 'text-blue-800 dark:text-blue-200',   body: 'text-blue-600 dark:text-blue-300' },
     green:  { wrap: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',  icon: 'bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300',  title: 'text-green-800 dark:text-green-200',  body: 'text-green-600 dark:text-green-300' },
@@ -142,7 +164,7 @@ const InfoBanner = ({ color = 'blue', icon: Icon, title, body }) => {
     <div className={`border rounded-2xl p-4 ${c.wrap}`}>
       <div className="flex items-start gap-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${c.icon}`}>
-          <Icon className="text-sm" />
+          {React.createElement(IconComponent, { className: 'text-sm' })}
         </div>
         <div>
           <p className={`text-sm font-semibold ${c.title}`}>{title}</p>
@@ -155,97 +177,20 @@ const InfoBanner = ({ color = 'blue', icon: Icon, title, body }) => {
 
 // Method selector buttons (deposit / withdraw)
 const MethodSelector = ({ methods, selected, onSelect, activeColor }) => (
-  <div className="grid grid-cols-3 gap-3">
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
     {methods.map(m => (
       <button key={m.id} type="button" onClick={() => onSelect(m.id)}
-        className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
-          selected === m.id
-            ? `border-${activeColor}-500 bg-${activeColor}-50 dark:bg-${activeColor}-900/30 shadow-md`
-            : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-300'
-        }`}>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 bg-gradient-to-br ${m.color}`}>
-          <m.icon className="text-white text-base" />
-        </div>
-        <p className={`text-xs font-semibold ${selected === m.id ? `text-${activeColor}-700 dark:text-${activeColor}-300` : 'text-gray-700 dark:text-gray-300'}`}>
-          {m.name}
-        </p>
-        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{m.desc}</p>
+        className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${selected === m.id
+          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'}`}
+      >
+        {React.createElement(m.icon, { className: 'mb-2 text-lg' })}
+        <p className="font-semibold text-sm text-gray-800 dark:text-white">{m.name}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{m.desc}</p>
       </button>
     ))}
   </div>
 );
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Card Preview (3D flip)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const CardPreview = ({ cardData, flipped, onFlip, gradient = 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a855f7 100%)', textColor = 'purple' }) => {
-  const brand = getCardBrand(cardData.cardNumber);
-  return (
-    <div>
-      <div className="relative h-44 rounded-2xl overflow-hidden cursor-pointer select-none"
-        style={{ perspective: '1000px' }} onClick={onFlip}>
-        <motion.div className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}
-          animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.5, ease: 'easeInOut' }}>
-
-          {/* Front */}
-          <div className="absolute inset-0 rounded-2xl p-5 flex flex-col justify-between"
-            style={{ backfaceVisibility: 'hidden', background: gradient }}>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className={`text-${textColor}-200 text-[10px] font-medium uppercase tracking-wider`}>Vaultix</p>
-              </div>
-              {brand && (
-                <div className="bg-white/20 px-2.5 py-1 rounded-md">
-                  <p className="text-white text-xs font-bold tracking-widest">{brand}</p>
-                </div>
-              )}
-            </div>
-            {/* Chip */}
-            <div className="w-10 h-7 rounded bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center">
-              <div className="w-7 h-4 border border-yellow-600/50 rounded-sm grid grid-cols-3 gap-px p-0.5">
-                {[...Array(9)].map((_, i) => <div key={i} className="bg-yellow-600/40 rounded-[1px]" />)}
-              </div>
-            </div>
-            <div>
-              <p className="text-white font-mono text-lg tracking-widest">{formatCardDisplay(cardData.cardNumber)}</p>
-              <div className="flex justify-between items-end mt-3">
-                <div>
-                  <p className={`text-${textColor}-300 text-[9px] uppercase tracking-wider`}>Card Holder</p>
-                  <p className="text-white text-sm font-medium mt-0.5 uppercase tracking-wide">{cardData.cardHolder || 'YOUR NAME'}</p>
-                </div>
-                {cardData.expiryMonth && (
-                  <div className="text-right">
-                    <p className={`text-${textColor}-300 text-[9px] uppercase tracking-wider`}>Expires</p>
-                    <p className="text-white text-sm font-medium mt-0.5">{cardData.expiryMonth}/{cardData.expiryYear?.slice(-2) || 'YY'}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Back */}
-          <div className="absolute inset-0 rounded-2xl flex flex-col justify-between"
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}>
-            <div className="h-10 bg-gray-900/70 mt-6" />
-            <div className="px-5 pb-5">
-              <div className="bg-white/10 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex-1 h-7 bg-white/80 rounded-md flex items-center px-3">
-                  <span className="font-mono text-gray-800 font-bold tracking-[0.3em] text-sm">
-                    {cardData.cvv ? '•'.repeat(cardData.cvv.length) : '•••'}
-                  </span>
-                </div>
-                <p className="text-purple-300 text-[10px] ml-3">CVV</p>
-              </div>
-              <p className="text-purple-400 text-[9px] text-center mt-2">Click to flip back</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-      <p className="text-center text-xs text-gray-400 mt-1">Click card to see CVV side</p>
-    </div>
-  );
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Component
@@ -270,12 +215,15 @@ const Transfer = () => {
   // Transaction state
   const [pendingTransaction, setPendingTransaction] = useState(null);
   const [receiptData, setReceiptData]               = useState(null);
+  const paystackReferenceRef = useRef('');
 
   // Transfer state
   const [verifyingAccount, setVerifyingAccount] = useState(false);
   const [recipientVerified, setRecipientVerified] = useState(false);
   const [recipientName, setRecipientName]         = useState('');
   const [isInternalTransfer, setIsInternalTransfer] = useState(false);
+  const [transferDestination, setTransferDestination] = useState('vaultix');
+  const [bankSearch, setBankSearch] = useState('');
 
   // Method selection
   const [depositMethod,  setDepositMethod]  = useState('card');
@@ -334,6 +282,21 @@ const Transfer = () => {
   // ── Change handlers ───────────────────────────────────────────────────────
   const onFormChange  = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
+  const selectTransferDestination = (destination) => {
+    const defaultBank = destination === 'vaultix' ? 'VAULTIX' : '';
+    setTransferDestination(destination);
+    setBankSearch('');
+    setForm(p => ({ ...p, recipientBank: defaultBank }));
+    setRecipientVerified(false);
+    setRecipientName('');
+    setIsInternalTransfer(false);
+  };
+
+  const filteredTransferBanks = BANKS_NO_INTERNAL.filter((bank) =>
+    bank.name.toLowerCase().includes(bankSearch.trim().toLowerCase()) ||
+    bank.code.toLowerCase().includes(bankSearch.trim().toLowerCase())
+  );
+
   const onCardChange  = (e) => {
     let { name, value } = e.target;
     if (name === 'cardNumber') value = fmtCardNum(value);
@@ -349,7 +312,7 @@ const Transfer = () => {
 
   // ── Verify recipient account ───────────────────────────────────────────────
   const handleVerifyAccount = async () => {
-    if (!form.recipientBank) { toast.error('Please select recipient bank'); return; }
+    if (!form.recipientBank) { toast.error('Search and select the recipient bank first'); return; }
     if (form.recipientBank === 'OTHER' && !form.recipientCustomBank) { toast.error('Please enter bank name'); return; }
     if (!form.recipientAccount || form.recipientAccount.length !== 10 || !/^\d+$/.test(form.recipientAccount)) {
       toast.error('Account number must be exactly 10 digits'); return;
@@ -389,10 +352,7 @@ const Transfer = () => {
     }
     if (activeTab === 'deposit') {
       if (depositMethod === 'card') {
-        if (cardData.cardNumber.replace(/\s/g,'').length < 16) { toast.error('Enter a valid 16-digit card number'); return false; }
-        if (!cardData.cardHolder.trim()) { toast.error('Enter cardholder name'); return false; }
-        if (!cardData.expiryMonth || !cardData.expiryYear) { toast.error('Enter card expiry'); return false; }
-        if (!cardData.cvv || cardData.cvv.length < 3) { toast.error('Enter a valid CVV'); return false; }
+        if (!PAYSTACK_PUBLIC_KEY) { toast.error('Paystack public key is missing. Please configure VITE_PAYSTACK_PUBLIC_KEY.'); return false; }
       }
       if (depositMethod === 'bank') {
         if (!bankDepData.accountName.trim()) { toast.error('Enter account name'); return false; }
@@ -425,9 +385,97 @@ const Transfer = () => {
   };
 
   // ── Submit → open PIN modal ───────────────────────────────────────────────
-  const handleSubmit = (e) => {
+  const handlePaystackDeposit = async () => {
+    if (!PAYSTACK_PUBLIC_KEY) {
+      toast.error('Paystack public key is missing. Please configure VITE_PAYSTACK_PUBLIC_KEY.');
+      return;
+    }
+
+    try {
+      await loadPaystackScript();
+
+      if (!window.PaystackPop) {
+        throw new Error('Paystack checkout library did not load.');
+      }
+
+      const amount = Number(form.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        toast.error('Enter a valid amount.');
+        return;
+      }
+
+      const email = user?.email?.trim();
+      if (!email) {
+        toast.error('Your account email is required before making a Paystack payment.');
+        return;
+      }
+
+      const reference = `VAULTIX-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+      paystackReferenceRef.current = reference;
+      const paystackAmount = Math.round(amount * 100);
+      let paymentCompleted = false;
+
+      const handler = window.PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email,
+        amount: paystackAmount,
+        currency: 'NGN',
+        ref: reference,
+        metadata: {
+          vaultix_user_id: user?._id || user?.id || '',
+          custom_fields: [
+            {
+              display_name: 'Vaultix User ID',
+              variable_name: 'vaultix_user_id',
+              value: user?._id || user?.id || '',
+            },
+            {
+              display_name: 'Vaultix User',
+              variable_name: 'vaultix_user',
+              value: user?.name || 'Vaultix User',
+            },
+          ],
+        },
+        callback: (response) => {
+          paymentCompleted = true;
+          if (!response?.reference) {
+            toast.error('Paystack did not return a payment reference.');
+            return;
+          }
+
+          setPendingTransaction({
+            type: 'deposit',
+            amount,
+            description: form.description,
+            depositMethod: 'card',
+            paystackReference: response.reference || paystackReferenceRef.current,
+          });
+          setShowPinModal(true);
+          toast.success('Payment completed. Enter your transaction PIN to verify it.');
+        },
+        onClose: () => {
+          if (!paymentCompleted) {
+            toast.error('Paystack payment was cancelled.');
+          }
+        },
+      });
+
+      handler.openIframe();
+    } catch (error) {
+      console.error('Paystack setup error:', error);
+      toast.error(error.message || 'Unable to open Paystack checkout right now. Please try again.');
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+
+    if (activeTab === 'deposit') {
+      await handlePaystackDeposit();
+      return;
+    }
+
     setPendingTransaction({
       type: activeTab,
       amount: Number(form.amount),
@@ -475,6 +523,12 @@ const Transfer = () => {
       } else if (pendingTransaction.type === 'deposit') {
         endpoint = '/transactions/deposit';
         body.paymentMethod = pendingTransaction.depositMethod;
+        const paymentReference = pendingTransaction.paystackReference || paystackReferenceRef.current;
+        if (!paymentReference) {
+          toast.error('Paystack payment reference is missing. Please restart the deposit.');
+          return;
+        }
+        body.reference = paymentReference;
       } else {
         endpoint = '/transactions/withdraw';
         body.withdrawMethod   = pendingTransaction.withdrawMethod;
@@ -487,6 +541,7 @@ const Transfer = () => {
 
       if (res.data.success) {
         const txData = res.data.data || {};
+        const transaction = txData.transaction || {};
 
         // Update balance
         if (txData.newBalance !== undefined) {
@@ -496,13 +551,13 @@ const Transfer = () => {
         // Build receipt
         const receipt = {
           ...txData,
-          amount:      pendingTransaction.amount,
-          status:      txData.status || 'successful',
+          amount:      transaction.amount ?? pendingTransaction.amount,
+          status:      transaction.status || txData.status || 'successful',
           type:        pendingTransaction.type === 'deposit' ? 'credit' : 'debit',
           subType:     pendingTransaction.type,
           description: pendingTransaction.description || null,
-          createdAt:   txData.createdAt || new Date().toISOString(),
-          reference:   txData.reference || txData.transactionId || txData._id || null,
+          createdAt:   transaction.createdAt || txData.createdAt || new Date().toISOString(),
+          reference:   transaction.reference || txData.reference || txData.transactionId || txData._id || null,
           recipientName:    pendingTransaction.recipientName || null,
           recipientAccount: pendingTransaction.recipientAccount || null,
           recipientBank:    pendingTransaction.recipientBank
@@ -510,9 +565,12 @@ const Transfer = () => {
             : null,
           senderName:    user?.name || null,
           senderAccount: user?.accountNumber || null,
-          balanceAfter:  txData.newBalance ?? txData.balanceAfter ?? null,
+          balanceAfter:  txData.newBalance ?? transaction.balanceAfter ?? txData.balanceAfter ?? null,
         };
 
+        if (pendingTransaction.type === 'deposit') {
+          toast.success('Deposit successful.');
+        }
         resetAll();
         setReceiptData(receipt);
         setShowReceipt(true);
@@ -589,59 +647,9 @@ const Transfer = () => {
                       <motion.div key="dep-card"
                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                         className="space-y-4">
-                        <CardPreview cardData={cardData} flipped={cardFlipped} onFlip={() => setCardFlipped(p => !p)} />
-                        <FieldGroup>
-                          {/* Card number */}
-                          <div>
-                            <FieldLabel>Card Number</FieldLabel>
-                            <div className="relative">
-                              <FaCreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input type="text" name="cardNumber" value={cardData.cardNumber} onChange={onCardChange}
-                                placeholder="0000 0000 0000 0000" maxLength="19"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white font-mono text-sm bg-white" />
-                            </div>
-                          </div>
-                          {/* Cardholder */}
-                          <div>
-                            <FieldLabel>Cardholder Name</FieldLabel>
-                            <div className="relative">
-                              <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                              <input type="text" name="cardHolder" value={cardData.cardHolder} onChange={onCardChange}
-                                placeholder="Name on card"
-                                className="w-full pl-9 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm" />
-                            </div>
-                          </div>
-                          {/* Expiry + CVV */}
-                          <div className="grid grid-cols-3 gap-3">
-                            <div>
-                              <FieldLabel>Month</FieldLabel>
-                              <select name="expiryMonth" value={cardData.expiryMonth} onChange={onCardChange}
-                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
-                                <option value="">MM</option>
-                                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <FieldLabel>Year</FieldLabel>
-                              <select name="expiryYear" value={cardData.expiryYear} onChange={onCardChange}
-                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm">
-                                <option value="">YY</option>
-                                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <FieldLabel>CVV</FieldLabel>
-                              <input type="text" name="cvv" value={cardData.cvv} onChange={onCardChange}
-                                onFocus={() => setCardFlipped(true)} onBlur={() => setCardFlipped(false)}
-                                placeholder="•••" maxLength="4"
-                                className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white text-sm font-mono" />
-                            </div>
-                          </div>
-                        </FieldGroup>
-                        <div className="flex items-center gap-2 px-1">
-                          <FaShieldAlt className="text-green-500 text-sm flex-shrink-0" />
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Card details are 256-bit encrypted. We never store your CVV.</p>
-                        </div>
+                        <InfoBanner color="green" icon={FaCreditCard}
+                          title="Secure card deposit"
+                          body="Enter the amount below, then complete payment in Paystack's secure checkout. Vaultix never receives your card number or CVV." />
                       </motion.div>
                     )}
 
@@ -751,13 +759,6 @@ const Transfer = () => {
                     )}
                   </AnimatePresence>
 
-                  {/* Demo notice */}
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
-                    <p className="text-yellow-800 dark:text-yellow-200 text-xs flex items-center gap-2">
-                      <FaInfoCircle className="flex-shrink-0" />
-                      <span><strong>Demo Mode:</strong> This is a simulated deposit. No real money or card details are processed.</span>
-                    </p>
-                  </div>
                 </motion.div>
               )}
 
@@ -959,64 +960,76 @@ const Transfer = () => {
               ════════════════════════════════════════ */}
               {activeTab === 'transfer' && (
                 <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                  {/* Recipient Bank */}
+                  {/* Destination type */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Bank</label>
-                    <div className="relative">
-                      <FaUniversity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <select name="recipientBank" value={form.recipientBank} onChange={onFormChange}
-                        disabled={recipientVerified} required
-                        className={`w-full pl-10 pr-3 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white transition-colors ${
-                          recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-gray-200' : 'border-gray-300 dark:border-gray-600 bg-white'
-                        }`}>
-                        <option value="">Select recipient bank</option>
-                        {NIGERIAN_BANKS.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
-                      </select>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Where are you sending?</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button type="button" onClick={() => selectTransferDestination('vaultix')}
+                        className={`p-4 rounded-xl border-2 text-left ${transferDestination === 'vaultix' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-600'}`}>
+                        <FaWallet className="text-indigo-600 mb-2" />
+                        <p className="font-semibold text-gray-900 dark:text-white">Vaultix user</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Send to a Vaultix account</p>
+                      </button>
+                      <button type="button" onClick={() => selectTransferDestination('bank')}
+                        className={`p-4 rounded-xl border-2 text-left ${transferDestination === 'bank' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-600'}`}>
+                        <FaUniversity className="text-indigo-600 mb-2" />
+                        <p className="font-semibold text-gray-900 dark:text-white">Other bank</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">OPay, PalmPay, Moniepoint and more</p>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Custom bank name */}
-                  {form.recipientBank === 'OTHER' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter Bank Name</label>
-                      <input type="text" name="recipientCustomBank" value={form.recipientCustomBank}
-                        onChange={onFormChange} disabled={recipientVerified} required
-                        placeholder="Enter your bank name"
-                        className={`w-full px-3 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${
-                          recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-gray-200' : 'border-gray-300 dark:border-gray-600 bg-white'
-                        }`} />
-                    </div>
-                  )}
-
-                  {/* Account number + Verify */}
+                  {/* Account number first */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient Account Number</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipient account number</label>
                     <div className="relative">
                       <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input type="text" name="recipientAccount" value={form.recipientAccount}
-                        onChange={onFormChange} disabled={recipientVerified} required
+                        onChange={e => { setRecipientVerified(false); setRecipientName(''); onFormChange(e); }} disabled={recipientVerified} required
                         placeholder="Enter 10-digit account number" maxLength="10"
-                        className={`w-full pl-10 pr-28 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${
-                          recipientVerified ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed border-green-400' : 'border-gray-300 dark:border-gray-600 bg-white'
-                        }`} />
-                      {!recipientVerified ? (
-                        <button type="button" onClick={handleVerifyAccount}
-                          disabled={verifyingAccount || !form.recipientAccount || !form.recipientBank}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1">
-                          {verifyingAccount ? <FaSpinner className="animate-spin text-xs" /> : <><FaSearch className="text-xs" /> Verify</>}
-                        </button>
-                      ) : (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                          <FaCheckCircle className="text-green-500 text-lg" />
-                          <button type="button"
-                            onClick={() => { setRecipientVerified(false); setRecipientName(''); setIsInternalTransfer(false); }}
-                            className="text-xs text-gray-400 hover:text-red-500 underline transition-colors">
-                            Change
-                          </button>
-                        </div>
-                      )}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white bg-white" />
                     </div>
                   </div>
+
+                  {/* Search/select bank after account number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {transferDestination === 'vaultix' ? 'Vaultix account' : 'Search recipient bank'}
+                    </label>
+                    {transferDestination !== 'bank' ? (
+                      <div className="p-3 rounded-xl border border-green-200 bg-green-50 text-sm text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200">
+                        The account number will be checked against Vaultix users.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input value={bankSearch} onChange={e => setBankSearch(e.target.value)} disabled={recipientVerified}
+                            placeholder="Search OPay, PalmPay, Moniepoint, UBA or any bank"
+                            className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-white bg-white" />
+                        </div>
+                      {!recipientVerified && (
+                      <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                        {filteredTransferBanks
+                          .map(bank => (
+                            <button type="button" key={bank.code} onClick={() => { setForm(p => ({ ...p, recipientBank: bank.code })); setBankSearch(bank.name); }}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm ${form.recipientBank === bank.code ? 'bg-indigo-100 text-indigo-800' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                              {bank.name} <span className="text-xs opacity-60">({bank.code})</span>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                      </>
+                    )}
+                  </div>
+
+                  {!recipientVerified && (
+                    <button type="button" onClick={handleVerifyAccount}
+                      disabled={verifyingAccount || form.recipientAccount.length !== 10 || !form.recipientBank}
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                      {verifyingAccount ? <FaSpinner className="animate-spin" /> : <FaSearch />} Verify account name
+                    </button>
+                  )}
 
                   {/* Verified recipient card */}
                   {recipientVerified && recipientName && (
@@ -1049,7 +1062,7 @@ const Transfer = () => {
                       </div>
                       {!isInternalTransfer && (
                         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3">
-                          ⚡ External transfers may take up to 5 minutes to process.
+                          ⚡ Paystack external transfers may take up to 5 minutes to process.
                         </p>
                       )}
                     </motion.div>
@@ -1110,9 +1123,9 @@ const Transfer = () => {
                 activeTab === 'withdraw' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200' :
                                           'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-200'
               }`}>
-                {activeTab === 'deposit'  && '💡 Demo Mode: Simulated deposit. Funds added instantly to your account.'}
-                {activeTab === 'withdraw' && '💡 Withdrawals are processed within minutes to your selected destination.'}
-                {activeTab === 'transfer' && '💡 Vaultix transfers are FREE & INSTANT. External transfers take up to 5 minutes.'}
+                {activeTab === 'deposit'  && '💡 Live Paystack checkout: funds are verified in real time before your wallet is credited.'}
+                {activeTab === 'withdraw' && '💡 Paystack processes withdrawals to your selected destination.'}
+                {activeTab === 'transfer' && '💡 Vaultix transfers are FREE & INSTANT. Paystack external transfers take up to 5 minutes.'}
               </div>
 
               {/* Submit button */}
